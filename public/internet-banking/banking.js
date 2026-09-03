@@ -62,7 +62,9 @@ function render(data) {
   $('#greeting').textContent =
     new Date().getHours() < 12 ? 'Good morning,' : new Date().getHours() < 19 ? 'Good afternoon,' : 'Good evening,';
   $('#dashboard').innerHTML =
-    `<div class="dashboard" id="top"><p class="section-kicker">Personal overview</p><h2 class="section-title">Your account</h2><div class="account-layout"><section class="account-card"><div class="card-top"><span class="currency-badge"><i class="flag">${escape(c.currency.slice(0, 2))}</i>${escape(c.currency)} account</span><span class="visa">VISA</span></div><div><p class="balance-label">Available balance</p><div class="balance-line"><strong id="balance-value" data-value="${escape(money(c.balance))}">${escape(money(c.balance))}</strong><button class="eye" id="toggle-balance" type="button" aria-label="Hide balance">◉</button></div></div><div class="card-bottom"><div><span>Account number</span><strong>${escape(maskAccount(c.accountNumber))}</strong></div><div><span>Account type</span><strong>Primary · ${escape(c.currency)}</strong></div></div></section><div class="quick-actions"><button class="quick-action" type="button" data-action="deposit"><span class="action-icon">↙</span><strong>Request</strong></button><button class="quick-action" type="button" data-action="withdrawal"><span class="action-icon">↗</span><strong>Transfer</strong></button><button class="quick-action primary-action" type="button" data-action="deposit"><span class="action-icon">＋</span><strong>Add money</strong></button></div></div><div class="lower-grid"><section class="panel transactions-panel" id="activity"><div class="panel-head"><h2>Transactions</h2><small>Latest ${data.transactions.length}</small></div><div class="tx-list">${data.transactions.map(txRow).join('') || '<p>No transactions yet.</p>'}</div></section><div class="side-stack"><section class="panel" id="operate"><div class="panel-head"><h2>Move money</h2><small>Instantly</small></div><form class="move-form" id="move-form"><div class="toggle"><label><input type="radio" name="type" value="deposit" checked>Request</label><label><input type="radio" name="type" value="withdrawal">Transfer</label></div><input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount in ${escape(c.currency)}" required><textarea name="description" maxlength="180" rows="2" placeholder="Add a note (optional)"></textarea><button class="primary">Confirm transaction</button></form></section><section class="panel" id="message-panel"><div class="panel-head"><h2>Support</h2><small>Direct messages</small></div><div class="messages">${data.messages.map(msgRow).join('') || '<p class="message">Hello! How can we help?</p>'}</div><form class="message-form" id="message-form"><textarea name="text" maxlength="2000" rows="2" placeholder="Write your message" aria-label="Support message" required></textarea><button aria-label="Send message">↗</button></form></section></div></div></div>`;
+    `<div class="dashboard" id="top"><p class="section-kicker">Personal overview</p><h2 class="section-title">Your account</h2><div class="account-layout"><section class="account-card"><div class="card-top"><span class="currency-badge"><i class="flag">${escape(c.currency.slice(0, 2))}</i>${escape(c.currency)} account</span><span class="visa">VISA</span></div><div><p class="balance-label">Available balance</p><div class="balance-line"><strong id="balance-value" data-value="${escape(money(c.balance))}">${escape(money(c.balance))}</strong><button class="eye" id="toggle-balance" type="button" aria-label="Hide balance">◉</button></div></div><div class="card-bottom"><div><span>Account number</span><strong>${escape(maskAccount(c.accountNumber))}</strong></div><div><span>Account type</span><strong>Primary · ${escape(c.currency)}</strong></div></div></section><div class="quick-actions"><button class="quick-action" type="button" data-action="deposit"><span class="action-icon">↙</span><strong>Request</strong></button><button class="quick-action" type="button" data-action="withdrawal"><span class="action-icon">↗</span><strong>Transfer</strong></button><button class="quick-action primary-action" type="button" data-action="deposit"><span class="action-icon">＋</span><strong>Add money</strong></button></div></div><div class="lower-grid"><section class="panel transactions-panel" id="activity"><div class="panel-head"><h2>Transactions</h2><small>Latest ${data.transactions.length}</small></div><div class="tx-list">${data.transactions.map(txRow).join('') || '<p>No transactions yet.</p>'}</div></section><div class="side-stack"><section class="panel" id="operate"><div class="panel-head"><h2>Move money</h2><small>Instantly</small></div><form class="move-form" id="move-form"><div class="toggle"><label><input type="radio" name="type" value="deposit" checked>Request</label><label><input type="radio" name="type" value="withdrawal">Transfer</label></div><input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount in ${escape(c.currency)}" required><textarea name="description" maxlength="180" rows="2" placeholder="Add a note (optional)"></textarea><button class="primary">Confirm transaction</button></form></section></div></div></div>`;
+  $('#support-messages').innerHTML =
+    data.messages.map(msgRow).join('') || '<p class="message">Hello! How can we help?</p>';
   wire();
   fail();
 }
@@ -75,6 +77,15 @@ async function load() {
 }
 function scrollToPanel(id) {
   $(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function setChat(open) {
+  const panel = $('#message-panel');
+  panel.hidden = !open;
+  $('#chat-launcher').setAttribute('aria-expanded', String(open));
+  if (open) {
+    panel.querySelector('textarea').focus();
+    $('#support-messages').scrollTop = $('#support-messages').scrollHeight;
+  }
 }
 function wire() {
   $('#toggle-balance').onclick = () => {
@@ -154,13 +165,19 @@ $('#logout').onclick = logout;
 $('#mobile-logout').onclick = logout;
 $('#focus-move').onclick = () => scrollToPanel('#operate');
 $('#focus-activity').onclick = () => scrollToPanel('#activity');
-$('#focus-message').onclick = () => scrollToPanel('#message-panel');
+$('#focus-message').onclick = () => setChat(true);
+$('#chat-launcher').onclick = () => setChat($('#message-panel').hidden);
+$('#chat-close').onclick = () => setChat(false);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !$('#message-panel').hidden) setChat(false);
+});
 document.querySelectorAll('[data-mobile-target]').forEach(
   (button) =>
     (button.onclick = () => {
       document.querySelectorAll('.mobile-nav button').forEach((item) => item.classList.remove('active'));
       button.classList.add('active');
-      const targets = { top: '#top', activity: '#activity', transfer: '#operate', support: '#message-panel' };
+      if (button.dataset.mobileTarget === 'support') return setChat(true);
+      const targets = { top: '#top', activity: '#activity', transfer: '#operate' };
       scrollToPanel(targets[button.dataset.mobileTarget]);
     })
 );

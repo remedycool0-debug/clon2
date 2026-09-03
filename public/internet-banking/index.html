@@ -80,6 +80,39 @@
         <p id="app-error" class="error toast" role="alert"></p>
       </section>
 
+      <button
+        class="chat-launcher"
+        id="chat-launcher"
+        type="button"
+        aria-label="Open support chat"
+        aria-controls="message-panel"
+        aria-expanded="false"
+      >
+        <span aria-hidden="true">◌</span>
+        <i></i>
+      </button>
+      <section class="floating-chat" id="message-panel" aria-label="Support chat" hidden>
+        <div class="panel-head">
+          <div>
+            <h2>Support</h2>
+            <small>Direct messages</small>
+          </div>
+          <button class="chat-close" id="chat-close" type="button" aria-label="Close support chat">×</button>
+        </div>
+        <div class="messages" id="support-messages" role="log" aria-live="polite"></div>
+        <form class="message-form" id="message-form">
+          <textarea
+            name="text"
+            maxlength="2000"
+            rows="2"
+            placeholder="Write your message"
+            aria-label="Support message"
+            required
+          ></textarea>
+          <button aria-label="Send message">↗</button>
+        </form>
+      </section>
+
       <nav class="mobile-nav" aria-label="Mobile navigation">
         <button class="active" type="button" data-mobile-target="top">
           <span aria-hidden="true">⌂</span><small>Home</small>

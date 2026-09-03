@@ -584,6 +584,80 @@ button {
   padding: 0 15px;
   cursor: pointer;
 }
+.chat-launcher {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 20;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  box-shadow: 0 16px 35px #17181542;
+  cursor: pointer;
+}
+.chat-launcher i {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 3px solid var(--ink);
+}
+.floating-chat {
+  position: fixed;
+  right: 28px;
+  bottom: 106px;
+  z-index: 21;
+  width: min(390px, calc(100vw - 36px));
+  padding: 27px;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 24px 70px #17181530;
+  transform-origin: bottom right;
+  animation: chat-in 0.2s ease-out;
+}
+.floating-chat[hidden] {
+  display: none;
+}
+.floating-chat .panel-head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+}
+.floating-chat h2 {
+  margin: 0;
+  font-size: 28px;
+}
+.floating-chat small {
+  color: var(--muted);
+}
+.floating-chat .messages {
+  height: 245px;
+}
+.chat-close {
+  width: 35px;
+  height: 35px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f2ef;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
 .toast {
   position: fixed;
   right: 24px;
@@ -801,6 +875,23 @@ button {
     display: grid;
     place-items: center;
     font-size: 28px;
+  }
+  .chat-launcher {
+    right: 18px;
+    bottom: 104px;
+    width: 58px;
+    height: 58px;
+  }
+  .floating-chat {
+    left: 14px;
+    right: 14px;
+    bottom: 102px;
+    width: auto;
+    padding: 23px;
+    border-radius: 27px;
+  }
+  .floating-chat .messages {
+    height: min(42vh, 280px);
   }
   .toast {
     bottom: 105px;
