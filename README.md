@@ -31,7 +31,7 @@ npm test
 
 ## Banking demo
 
-The customer can review their balance and history, make simulated deposits and withdrawals, and exchange messages with the operator. The operator can inspect customer activity, see withdrawals, apply credits or debits, and reply to customer messages.
+The customer can review their balance and history, make simulated deposits and withdrawals, and exchange messages with the operator. The operator can create customer accounts with a username and password, inspect customer activity, see withdrawals, apply credits or debits, and reply to customer messages. Passwords are stored only as salted hashes.
 
 All transactions are simulated. The application does not connect to payment networks or move real money. The interface warns users not to enter real credentials.
 

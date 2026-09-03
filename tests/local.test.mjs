@@ -147,7 +147,18 @@ test('customer and operator share balances, withdrawals and banking messages', a
 
   const operatorLogin = await fetch(base + '/api/operator/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: 'test-operator-secret' }) });
   const operatorCookie = operatorLogin.headers.get('set-cookie').split(';')[0];
+  const createdCustomer = await fetch(base + '/api/operator/customers', { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Alex Morgan', username: 'alex.morgan', password: 'SecurePass123!', openingBalance: 250, currency: 'EUR' }) });
+  assert.equal(createdCustomer.status, 201);
+  const createdCustomerData = await createdCustomer.json();
+  assert.equal(createdCustomerData.customer.balance, 250);
+  assert.equal(createdCustomerData.customer.currency, 'EUR');
+  assert.match(createdCustomerData.customer.accountNumber, /^DEMO-/);
+  const duplicateCustomer = await fetch(base + '/api/operator/customers', { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Another Alex', username: 'alex.morgan', password: 'AnotherPass123!', openingBalance: 0, currency: 'USD' }) });
+  assert.equal(duplicateCustomer.status, 409);
+  const newLogin = await fetch(base + '/api/banking/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'alex.morgan', password: 'SecurePass123!' }) });
+  assert.equal(newLogin.status, 200);
   const customers = await (await fetch(base + '/api/operator/customers', { headers: { cookie: operatorCookie } })).json();
+  assert.equal(customers.customers.length, 2);
   const id = customers.customers[0].id;
   const credit = await fetch(`${base}/api/operator/customers/${id}/transactions`, { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'credit', amount: 300, description: 'Approved adjustment' }) });
   assert.equal(credit.status, 201);

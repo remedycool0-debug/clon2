@@ -54,6 +54,17 @@ export function createServer(options = {}) {
         if (!validOperator(req, operatorKey)) return sendJson(res, 401, { error: 'Unauthorized.' });
         if (pathname === '/api/operator/sessions' && req.method === 'GET') return sendJson(res, 200, { sessions: await store.listSessions() });
         if (pathname === '/api/operator/customers' && req.method === 'GET') return sendJson(res, 200, { customers: await bankStore.listCustomers() });
+        if (pathname === '/api/operator/customers' && req.method === 'POST') {
+          const body = await readJson(req); const name = cleanText(body.name, 120); const username = cleanText(body.username, 80).toLowerCase(); const password = cleanText(body.password, 200); const currency = cleanText(body.currency, 3).toUpperCase() || 'USD'; const openingBalance = Number(body.openingBalance ?? 0);
+          if (name.length < 2) return sendJson(res, 400, { error: 'Enter the customer name.' });
+          if (!/^[a-z0-9._-]{3,40}$/.test(username)) return sendJson(res, 400, { error: 'Username must be 3–40 characters and may contain letters, numbers, dots, underscores, or hyphens.' });
+          if (password.length < 8 || password.length > 128) return sendJson(res, 400, { error: 'Password must be between 8 and 128 characters.' });
+          if (!['USD', 'EUR', 'TRY'].includes(currency)) return sendJson(res, 400, { error: 'Unsupported currency.' });
+          if (!Number.isFinite(openingBalance) || openingBalance < 0 || openingBalance > 1_000_000_000) return sendJson(res, 400, { error: 'Enter a valid opening balance.' });
+          const result = await bankStore.createCustomer({ name, username, password, currency, openingBalance });
+          if (result.error === 'username_exists') return sendJson(res, 409, { error: 'That username is already in use.' });
+          return sendJson(res, 201, result);
+        }
         const customerMatch = pathname.match(/^\/api\/operator\/customers\/([0-9a-f-]+)(?:\/(transactions|messages))?$/i);
         if (customerMatch) {
           const customer = await bankStore.getCustomer(customerMatch[1]); if (!customer) return sendJson(res, 404, { error: 'Customer not found.' });
