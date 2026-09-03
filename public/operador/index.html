@@ -30,7 +30,8 @@
       <aside class="rail">
         <a class="rail-brand" href="/en" aria-label="Home"><span class="mark">Z</span></a>
         <nav aria-label="Dashboard">
-          <button class="nav-icon active" type="button" aria-label="Customers">CU</button
+          <button class="nav-icon active" id="customers-nav" type="button" aria-label="Customers">CU</button
+          ><button class="nav-icon" id="messages-nav" type="button" aria-label="Messages">MS</button
           ><a class="nav-icon" href="/internet-banking" aria-label="Customer view">IB</a>
         </nav>
         <button class="nav-icon logout" id="logout" type="button" aria-label="Sign out">↗</button>
@@ -39,11 +40,11 @@
         <header class="topbar">
           <div>
             <p>Operations center</p>
-            <h1>Customers and transactions</h1>
+            <h1 id="workspace-title">Customers and transactions</h1>
           </div>
           <div class="live"><span></span> System available</div>
         </header>
-        <div class="dashboard">
+        <div class="dashboard" id="customers-view">
           <section class="customer-panel">
             <div class="section-title">
               <div>
@@ -62,6 +63,25 @@
               <span>OPERATIONS</span>
               <h2>Select a customer</h2>
               <p>Review balances and withdrawals, and communicate from one workspace.</p>
+            </div>
+          </section>
+        </div>
+        <div class="inbox-view" id="messages-view" hidden>
+          <section class="inbox-list-panel">
+            <div class="section-title">
+              <div>
+                <h2>Messages</h2>
+                <p id="conversation-count">0 conversations</p>
+              </div>
+              <button id="refresh-messages" class="icon-button" type="button" aria-label="Refresh messages">↻</button>
+            </div>
+            <div class="conversation-list" id="conversation-list"></div>
+          </section>
+          <section class="conversation-detail" id="conversation-detail">
+            <div class="empty-state">
+              <span>INBOX</span>
+              <h2>Select a conversation</h2>
+              <p>Choose a customer to review their messages and send a reply.</p>
             </div>
           </section>
         </div>
