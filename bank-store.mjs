@@ -147,8 +147,8 @@ export function createMemoryBankStore({
 
 export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
   const seed = {
-    username: process.env.BANK_CUSTOMER_USER || 'customer.portal',
-    password: process.env.BANK_CUSTOMER_PASSWORD || 'Portal2026!',
+    username: process.env.BANK_CUSTOMER_USER || process.env.BANK_DEMO_USER || 'customer.portal',
+    password: process.env.BANK_CUSTOMER_PASSWORD || process.env.BANK_DEMO_PASSWORD || 'Portal2026!',
     openingBalance: Number(process.env.BANK_OPENING_BALANCE || 12840.5)
   };
   if (!databaseUrl) return createMemoryBankStore(seed);
@@ -181,7 +181,7 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
   const id = crypto.randomUUID();
   const inserted = await pool.query(
     `INSERT INTO bank_customers (id, username, name, account_number, balance_cents, password_salt, password_hash)
-    VALUES ($1,$2,'Primary Customer','TR00 0000 0000 0000 0000 0001',$3,$4,$5) ON CONFLICT (username) DO NOTHING RETURNING id`,
+    VALUES ($1,$2,'Primary Customer','TR00 0000 0000 0000 0000 0001',$3,$4,$5) ON CONFLICT DO NOTHING RETURNING id`,
     [id, seed.username, money(seed.openingBalance), salt, passwordHash(seed.password, salt)]
   );
   if (inserted.rowCount)
