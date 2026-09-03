@@ -4,7 +4,7 @@ import pg from 'pg';
 const { Pool } = pg;
 const nowIso = () => new Date().toISOString();
 const money = (value) => Math.round(Number(value) * 100);
-const demoAccountNumber = () => `DEMO-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+const accountNumber = () => `ACC-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
 const publicCustomer = (row) => ({
   id: row.id,
   username: row.username,
@@ -20,15 +20,15 @@ export function passwordHash(password, salt) {
 }
 
 export function createMemoryBankStore({
-  username = 'customer.demo',
-  password = 'Demo2026!',
+  username = 'customer.portal',
+  password = 'Portal2026!',
   openingBalance = 12840.5
 } = {}) {
   const salt = crypto.randomBytes(16).toString('hex');
   const customer = {
     id: crypto.randomUUID(),
     username,
-    name: 'Demo Customer',
+    name: 'Primary Customer',
     account_number: 'TR00 0000 0000 0000 0000 0001',
     currency: 'USD',
     balance_cents: money(openingBalance),
@@ -44,7 +44,7 @@ export function createMemoryBankStore({
       customerId: customer.id,
       type: 'opening',
       amount: openingBalance,
-      description: 'Opening demo balance',
+      description: 'Opening balance',
       actor: 'system',
       createdAt: nowIso()
     }
@@ -80,7 +80,7 @@ export function createMemoryBankStore({
         id: crypto.randomUUID(),
         username: newUsername,
         name,
-        account_number: demoAccountNumber(),
+        account_number: accountNumber(),
         currency,
         balance_cents: balanceCents,
         password_salt: customerSalt,
@@ -147,8 +147,8 @@ export function createMemoryBankStore({
 
 export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
   const seed = {
-    username: process.env.BANK_DEMO_USER || 'customer.demo',
-    password: process.env.BANK_DEMO_PASSWORD || 'Demo2026!',
+    username: process.env.BANK_CUSTOMER_USER || 'customer.portal',
+    password: process.env.BANK_CUSTOMER_PASSWORD || 'Portal2026!',
     openingBalance: Number(process.env.BANK_OPENING_BALANCE || 12840.5)
   };
   if (!databaseUrl) return createMemoryBankStore(seed);
@@ -181,12 +181,12 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
   const id = crypto.randomUUID();
   const inserted = await pool.query(
     `INSERT INTO bank_customers (id, username, name, account_number, balance_cents, password_salt, password_hash)
-    VALUES ($1,$2,'Demo Customer','TR00 0000 0000 0000 0000 0001',$3,$4,$5) ON CONFLICT (username) DO NOTHING RETURNING id`,
+    VALUES ($1,$2,'Primary Customer','TR00 0000 0000 0000 0000 0001',$3,$4,$5) ON CONFLICT (username) DO NOTHING RETURNING id`,
     [id, seed.username, money(seed.openingBalance), salt, passwordHash(seed.password, salt)]
   );
   if (inserted.rowCount)
     await pool.query(
-      "INSERT INTO bank_transactions (customer_id,type,amount_cents,description,actor) VALUES ($1,'opening',$2,'Opening demo balance','system')",
+      "INSERT INTO bank_transactions (customer_id,type,amount_cents,description,actor) VALUES ($1,'opening',$2,'Opening balance','system')",
       [id, money(seed.openingBalance)]
     );
   return {
@@ -215,7 +215,7 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
         await client.query('BEGIN');
         const { rows } = await client.query(
           'INSERT INTO bank_customers (id,username,name,account_number,currency,balance_cents,password_salt,password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
-          [id, username, name, demoAccountNumber(), currency, balanceCents, salt, passwordHash(password, salt)]
+          [id, username, name, accountNumber(), currency, balanceCents, salt, passwordHash(password, salt)]
         );
         if (balanceCents > 0)
           await client.query(

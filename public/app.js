@@ -295,7 +295,7 @@ const rates = [
   ['G02 SILVER', '99.324171', '113.695194']
 ];
 $('#ZiraatVerileri').innerHTML =
-  `<ul class="rates-list">${rates.map(([name, buy, sell]) => `<li class="rate-item"><h3>${name}</h3><div class="rate-columns"><div><small>BANK BUY</small><strong>${buy}</strong></div><div><small>BANK SELL</small><strong>${sell}</strong></div></div></li>`).join('')}</ul><p class="rates-note">Reference snapshot · 03 Sep 2026<br>Local demo — rates are not live.</p>`;
+  `<ul class="rates-list">${rates.map(([name, buy, sell]) => `<li class="rate-item"><h3>${name}</h3><div class="rate-columns"><div><small>BANK BUY</small><strong>${buy}</strong></div><div><small>BANK SELL</small><strong>${sell}</strong></div></div></li>`).join('')}</ul><p class="rates-note">Reference snapshot · 03 Sep 2026<br>Local site — rates are not live.</p>`;
 $('#PiyasaVerileri').innerHTML =
   '<div class="market-empty"><p>Market information</p><p>Live market data is available on the official Ziraat Bank website.</p><a href="https://www.ziraatbank.com.tr/en" target="_blank" rel="noopener noreferrer">View current market data ↗</a></div>';
 function setupTabs(titleSelector, panelsSelector) {
@@ -441,7 +441,7 @@ function locate() {
   );
   content.append(
     paragraph(
-      'This local demo does not connect to the bank’s branch database. Open the official locator to search current locations and opening hours.'
+      'This local site does not connect to the bank’s branch database. Open the official locator to search current locations and opening hours.'
     )
   );
   content.append(
@@ -465,7 +465,7 @@ $('#txtMapSearch').addEventListener('keydown', (e) => {
 const cookie = $('.cookie-box');
 if (cookie) {
   try {
-    cookie.hidden = localStorage.getItem('ziraat-demo-cookie-dismissed') === 'true';
+    cookie.hidden = localStorage.getItem('ziraat-site-cookie-dismissed') === 'true';
   } catch {
     /* Storage may be unavailable in private contexts. */
   }
@@ -477,7 +477,7 @@ if (cookie) {
         e.preventDefault();
         cookie.hidden = true;
         try {
-          localStorage.setItem('ziraat-demo-cookie-dismissed', 'true');
+          localStorage.setItem('ziraat-site-cookie-dismissed', 'true');
         } catch {}
       });
     } else if (a.getAttribute('href')?.startsWith('/')) {

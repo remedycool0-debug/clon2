@@ -33,13 +33,13 @@ const cookie = (source.match(/<div class="cookie-box[\s\S]*?<\/div>/)?.[0] || ''
 );
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ziraat Bank — Local Demo</title><meta name="description" content="Local visual reproduction of the public Ziraat Bank English homepage.">
+<title>Ziraat Bank — Local Site</title><meta name="description" content="Local visual reproduction of the public Ziraat Bank English homepage.">
 <meta name="robots" content="noindex,nofollow"><link rel="icon" href="/SiteAssets/images/favicon.ico">
 <link rel="stylesheet" href="/SiteAssets/css/min/magiclick.min.css"><link rel="stylesheet" href="/clone.css">
 <script type="module" src="/app.js"></script></head><body class="home-page global en">
 <a class="clone-skip" href="#main-box">Skip to content</a>
 ${body}
-<p class="demo-note">Local demo · Unaffiliated reproduction · No banking transactions. Product links open the official website.</p>
+<p class="site-note">Local site · Unaffiliated reproduction · No banking transactions. Product links open the official website.</p>
 ${cookie}
 <button class="chat-launch" type="button" aria-label="Abrir chat" aria-expanded="false" aria-controls="customer-chat"><span class="icon-comment" aria-hidden="true"></span></button>
 <section class="customer-chat" id="customer-chat" aria-label="Support chat" hidden>

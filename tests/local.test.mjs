@@ -196,7 +196,7 @@ test('customer and operator share balances, withdrawals and banking messages', a
   const login = await fetch(base + '/api/banking/login', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ username: 'customer.demo', password: 'Demo2026!' })
+    body: JSON.stringify({ username: 'customer.portal', password: 'Portal2026!' })
   });
   assert.equal(login.status, 200);
   const customerCookie = login.headers.get('set-cookie').split(';')[0];
@@ -237,7 +237,7 @@ test('customer and operator share balances, withdrawals and banking messages', a
   const createdCustomerData = await createdCustomer.json();
   assert.equal(createdCustomerData.customer.balance, 250);
   assert.equal(createdCustomerData.customer.currency, 'EUR');
-  assert.match(createdCustomerData.customer.accountNumber, /^DEMO-/);
+  assert.match(createdCustomerData.customer.accountNumber, /^ACC-/);
   const duplicateCustomer = await fetch(base + '/api/operator/customers', {
     method: 'POST',
     headers: { cookie: operatorCookie, 'content-type': 'application/json' },

