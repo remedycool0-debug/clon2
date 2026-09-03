@@ -1,0 +1,20 @@
+{
+  "name": "ziraat-homepage-local-clone",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local reproduction of the public Ziraat Bank English homepage",
+  "engines": {
+    "node": ">=22.8"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "build": "node scripts/build.mjs && node scripts/build-subpages.mjs",
+    "prepare:menu-assets": "node scripts/prepare-menu-assets.mjs",
+    "test": "node --test --test-isolation=none tests/*.test.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  }
+}

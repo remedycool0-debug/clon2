@@ -1,0 +1,10 @@
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+$$('a[target="_blank"]').forEach(a=>a.rel='noopener noreferrer');const mobile=$('.mobile-navigation');
+$$('.mobile-nav-btn').forEach(b=>{b.setAttribute('role','button');b.tabIndex=0;b.setAttribute('aria-label','Toggle navigation');const toggle=()=>{const open=mobile?.classList.toggle('open');b.setAttribute('aria-expanded',String(open));document.body.style.overflow=open?'hidden':''};b.addEventListener('click',toggle);b.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();toggle()}})});
+$$('.navigation>ul>li>a').forEach(a=>{a.setAttribute('aria-expanded','false');a.addEventListener('click',e=>{e.preventDefault();a.setAttribute('aria-expanded',String(a.parentElement.classList.toggle('open')))})});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mobile){mobile.classList.remove('open');document.body.style.overflow=''}});
+const desktopItems=$$('.header .navigation>ul>li');let closeTimer;
+const closeDesktop=(except)=>desktopItems.filter(li=>li!==except).forEach(li=>{li.classList.remove('open');$(':scope>a',li)?.setAttribute('aria-expanded','false')});
+desktopItems.forEach(li=>{li.addEventListener('pointerenter',()=>{if(!matchMedia('(min-width:992px)').matches)return;clearTimeout(closeTimer);closeDesktop(li);li.classList.add('open');$(':scope>a',li)?.setAttribute('aria-expanded','true')});li.addEventListener('pointerleave',()=>{if(!matchMedia('(min-width:992px)').matches)return;clearTimeout(closeTimer);closeTimer=setTimeout(()=>closeDesktop(),180)})});
+document.addEventListener('pointerdown',e=>{if(matchMedia('(min-width:992px)').matches&&!e.target.closest('.header .navigation'))closeDesktop()});
+const financeToggle=$('.zfg-link>h2>a');
+if(financeToggle){const financeLinks=$('.zfg-link .link-list');financeToggle.setAttribute('aria-expanded','false');financeToggle.addEventListener('click',e=>{e.preventDefault();const open=financeLinks.style.display!=='block';financeLinks.style.display=open?'block':'none';financeToggle.setAttribute('aria-expanded',String(open))})}
