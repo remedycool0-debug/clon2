@@ -167,4 +167,10 @@ test('customer and operator share balances, withdrawals and banking messages', a
   await fetch(`${base}/api/operator/customers/${id}/messages`, { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ text: 'We are reviewing it.' }) });
   const after = await (await fetch(base + '/api/banking/me', { headers: { cookie: customerCookie } })).json();
   assert.deepEqual(after.messages.map(item => item.sender), ['customer', 'operator']);
+  const deleted = await fetch(`${base}/api/operator/customers/${createdCustomerData.customer.id}`, { method: 'DELETE', headers: { cookie: operatorCookie } });
+  assert.equal(deleted.status, 200);
+  const customersAfterDelete = await (await fetch(base + '/api/operator/customers', { headers: { cookie: operatorCookie } })).json();
+  assert.equal(customersAfterDelete.customers.length, 1);
+  const deletedLogin = await fetch(base + '/api/banking/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'alex.morgan', password: 'SecurePass123!' }) });
+  assert.equal(deletedLogin.status, 401);
 });
