@@ -1,1 +1,16 @@
-.delete-customer{display:block;margin:16px 0 0 auto;border:1px solid #c9182440;background:#fff5f5;color:var(--red);padding:9px 12px;font-weight:700;cursor:pointer;transition:.2s ease}.delete-customer:hover,.delete-customer:focus-visible{background:var(--red);color:#fff}
+.delete-customer {
+  display: block;
+  margin: 16px 0 0 auto;
+  border: 1px solid #c9182440;
+  background: #fff5f5;
+  color: var(--red);
+  padding: 9px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+.delete-customer:hover,
+.delete-customer:focus-visible {
+  background: var(--red);
+  color: #fff;
+}

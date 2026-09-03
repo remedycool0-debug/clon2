@@ -12,9 +12,14 @@
     "dev": "node --watch server.mjs",
     "build": "node scripts/build.mjs && node scripts/build-subpages.mjs",
     "prepare:menu-assets": "node scripts/prepare-menu-assets.mjs",
-    "test": "node --test --test-isolation=none tests/*.test.mjs"
+    "test": "node --test --test-isolation=none tests/*.test.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
   }
 }

@@ -3,7 +3,9 @@ import path from 'node:path';
 
 const projectRoot = path.resolve(import.meta.dirname, '..');
 const pagesDir = path.join(projectRoot, 'recursos', 'pages');
-const sourceFiles = (await readdir(pagesDir)).filter(name => /^(retail|sme|corporate|footer|hero)-.*\.html$/.test(name));
+const sourceFiles = (await readdir(pagesDir)).filter((name) =>
+  /^(retail|sme|corporate|footer|hero)-.*\.html$/.test(name)
+);
 const assetPaths = new Set();
 
 for (const filename of sourceFiles) {
@@ -23,7 +25,10 @@ const lines = [];
 for (const assetPath of [...assetPaths].sort()) {
   const output = path.join(projectRoot, 'public', ...assetPath.split('/').filter(Boolean));
   await mkdir(path.dirname(output), { recursive: true });
-  lines.push(`url = "https://www.ziraatbank.com.tr${assetPath}"`, `output = "${path.relative(projectRoot, output).replaceAll('\\', '/')}"`);
+  lines.push(
+    `url = "https://www.ziraatbank.com.tr${assetPath}"`,
+    `output = "${path.relative(projectRoot, output).replaceAll('\\', '/')}"`
+  );
 }
 await writeFile(path.join(projectRoot, 'recursos', 'download-menu-assets.conf'), `${lines.join('\n')}\n`);
 console.log(`Prepared ${assetPaths.size} menu image downloads.`);

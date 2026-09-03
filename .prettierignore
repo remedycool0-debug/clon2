@@ -1,0 +1,10 @@
+node_modules/
+recursos/
+public/index.html
+public/en/
+public/tr/
+public/SiteAssets/
+public/PublishingImages/
+public/_layouts/
+public/clone.css
+*.log

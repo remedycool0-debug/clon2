@@ -18,10 +18,10 @@ test('loan repayment handles interest, zero interest and invalid inputs', () => 
   assert.equal(monthlyPayment(10000, 3, 0), null);
   assert.equal(monthlyPayment(10000, -3, 12), null);
 });
-test('local HTTP server serves the homepage, assets and health, and rejects non-public paths', async t => {
+test('local HTTP server serves the homepage, assets and health, and rejects non-public paths', async (t) => {
   const server = createServer();
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => new Promise(resolve => server.close(resolve)));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
   for (const route of ['/', '/en', '/en/']) {
     const response = await fetch(base + route);
@@ -33,34 +33,56 @@ test('local HTTP server serves the homepage, assets and health, and rejects non-
     assert.doesNotMatch(html, /__VIEWSTATE|__EVENTVALIDATION/);
   }
   assert.deepEqual(await (await fetch(base + '/health')).json(), { status: 'ok' });
-  const pages = new Map([['/en/product-and-service-fees','Product and Service Fees'],['/en/our-bank','Our Bank'],['/en/investor-relations','Investor Relations'],['/en/digital-banking','Digital Banking'],['/en/retail','Retail'],['/en/commercial','Commercial'],['/en/corporate','Corporate'],['/tr','Ziraat Bankası']]);
+  const pages = new Map([
+    ['/en/product-and-service-fees', 'Product and Service Fees'],
+    ['/en/our-bank', 'Our Bank'],
+    ['/en/investor-relations', 'Investor Relations'],
+    ['/en/digital-banking', 'Digital Banking'],
+    ['/en/retail', 'Retail'],
+    ['/en/commercial', 'Commercial'],
+    ['/en/corporate', 'Corporate'],
+    ['/tr', 'Ziraat Bankası']
+  ]);
   for (const [route, heading] of pages) {
-    const response = await fetch(base + route); assert.equal(response.status, 200, route);
+    const response = await fetch(base + route);
+    assert.equal(response.status, 200, route);
     assert.match(await response.text(), new RegExp(heading), route);
   }
   const menuPages = [
-    ['/en/retail',['accounts','loans','cards','payments','services','insurance-pension','investment']],
-    ['/en/commercial',['accounts','cards','loans','foreign-trade','cash-management','pos-services','investment','agriculture']],
-    ['/en/corporate',['accounts','loans','foreign-trade','cards','cash-management','investment','agriculture']]
+    ['/en/retail', ['accounts', 'loans', 'cards', 'payments', 'services', 'insurance-pension', 'investment']],
+    [
+      '/en/commercial',
+      ['accounts', 'cards', 'loans', 'foreign-trade', 'cash-management', 'pos-services', 'investment', 'agriculture']
+    ],
+    ['/en/corporate', ['accounts', 'loans', 'foreign-trade', 'cards', 'cash-management', 'investment', 'agriculture']]
   ];
-  for (const [section, slugs] of menuPages) for (const slug of slugs) {
-    const response = await fetch(`${base}${section}/${slug}`);
-    assert.equal(response.status, 200, `${section}/${slug}`);
-    assert.match(await response.text(), /clone-(?:card-grid|detail)/, `${section}/${slug}`);
-  }
+  for (const [section, slugs] of menuPages)
+    for (const slug of slugs) {
+      const response = await fetch(`${base}${section}/${slug}`);
+      assert.equal(response.status, 200, `${section}/${slug}`);
+      assert.match(await response.text(), /clone-(?:card-grid|detail)/, `${section}/${slug}`);
+    }
   const home = await (await fetch(base + '/en')).text();
-  for (const [section, slugs] of menuPages) for (const slug of slugs) {
-    assert.match(home, new RegExp(`href="${section}/${slug}"`), `${section}/${slug}`);
-  }
+  for (const [section, slugs] of menuPages)
+    for (const slug of slugs) {
+      assert.match(home, new RegExp(`href="${section}/${slug}"`), `${section}/${slug}`);
+    }
   const footerPages = [
-    ['/en/our-bank/about-us/ziraat-finans-group/domestic-subsidiaries','Local Subsidiaries'],
-    ['/en/our-bank/about-us/ziraat-finans-group/subsidiaries-abroad-overseas-branches-and-representative-offices','Subsidiaries Abroad'],
-    ['/en/our-bank/press-room/news-announcements','News &amp; Announcements'],
-    ['/en/calculation-tools','Calculation Tools'], ['/en/sitemap','Site Map'], ['/en/faq','FAQ'],
-    ['/tr/bankamiz/ziraatten-duyurular/duyurular/zamanasimina-ugrayan-mevduat-ve-emanet-hesaplari','Time Out Account'],
-    ['/en/calculation-tools/iban','IBAN'], ['/en/legal-notice','Legal Notice'],
-    ['/en/contact-us/branches-atms','Branches &amp; ATMs'], ['/en/contact-us/contact-form','Contact Form'],
-    ['/en/our-bank/announcements/disclosure-of-protection-of-personal-data','Personal Data Protection']
+    ['/en/our-bank/about-us/ziraat-finans-group/domestic-subsidiaries', 'Local Subsidiaries'],
+    [
+      '/en/our-bank/about-us/ziraat-finans-group/subsidiaries-abroad-overseas-branches-and-representative-offices',
+      'Subsidiaries Abroad'
+    ],
+    ['/en/our-bank/press-room/news-announcements', 'News &amp; Announcements'],
+    ['/en/calculation-tools', 'Calculation Tools'],
+    ['/en/sitemap', 'Site Map'],
+    ['/en/faq', 'FAQ'],
+    ['/tr/bankamiz/ziraatten-duyurular/duyurular/zamanasimina-ugrayan-mevduat-ve-emanet-hesaplari', 'Time Out Account'],
+    ['/en/calculation-tools/iban', 'IBAN'],
+    ['/en/legal-notice', 'Legal Notice'],
+    ['/en/contact-us/branches-atms', 'Branches &amp; ATMs'],
+    ['/en/contact-us/contact-form', 'Contact Form'],
+    ['/en/our-bank/announcements/disclosure-of-protection-of-personal-data', 'Personal Data Protection']
   ];
   for (const [route, heading] of footerPages) {
     const response = await fetch(base + route);
@@ -69,14 +91,17 @@ test('local HTTP server serves the homepage, assets and health, and rejects non-
     assert.match(home, new RegExp(`href="${route}"`), route);
   }
   const sitemap = await (await fetch(base + '/en/sitemap')).text();
-  const sitemapLinks = [...sitemap.matchAll(/<a\b[^>]*\bhref=(["'])(.*?)\1/gi)].map(match => match[2]);
+  const sitemapLinks = [...sitemap.matchAll(/<a\b[^>]*\bhref=(["'])(.*?)\1/gi)].map((match) => match[2]);
   assert.ok(sitemapLinks.length > 100, 'sitemap should preserve its complete link list');
-  assert.ok(sitemapLinks.every(href => href === '/en'), 'every sitemap link should return to the homepage');
+  assert.ok(
+    sitemapLinks.every((href) => href === '/en'),
+    'every sitemap link should return to the homepage'
+  );
   assert.doesNotMatch(sitemap, /<a\b[^>]*\btarget=["']_blank["']/i);
   const heroPages = [
-    ['/en/retail/services/western-union','Western Union'],
-    ['/en/digital-banking/mobile-banking/ziraat-mobil','Ziraat Mobil'],
-    ['/en/digital-banking/mobile-banking/ziraat-mobile-corporate','Ziraat Mobile Corporate']
+    ['/en/retail/services/western-union', 'Western Union'],
+    ['/en/digital-banking/mobile-banking/ziraat-mobil', 'Ziraat Mobil'],
+    ['/en/digital-banking/mobile-banking/ziraat-mobile-corporate', 'Ziraat Mobile Corporate']
   ];
   for (const [route, heading] of heroPages) {
     const response = await fetch(base + route);
@@ -95,82 +120,182 @@ test('local HTTP server serves the homepage, assets and health, and rejects non-
     assert.ok(Number(response.headers.get('content-length')) > 0, asset.file);
   }
   const css = await readFile(new URL('../public/SiteAssets/css/min/magiclick.min.css', import.meta.url), 'utf8');
-  const localUrls = [...new Set([...css.matchAll(/url\(["']?(\/[^)"']+)/g)].map(m => m[1]))];
+  const localUrls = [...new Set([...css.matchAll(/url\(["']?(\/[^)"']+)/g)].map((m) => m[1]))];
   for (const url of localUrls) assert.equal((await fetch(base + url, { method: 'HEAD' })).status, 200, url);
 });
 
-test('visitor and authenticated operator can exchange chat messages', async t => {
+test('visitor and authenticated operator can exchange chat messages', async (t) => {
   const server = createServer({ operatorKey: 'test-operator-secret' });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => new Promise(resolve => server.close(resolve)));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
 
   assert.equal((await fetch(base + '/operador')).status, 200);
-  const createdResponse = await fetch(base + '/api/chat/sessions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  const createdResponse = await fetch(base + '/api/chat/sessions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{}'
+  });
   assert.equal(createdResponse.status, 201);
   const created = await createdResponse.json();
   const visitorHeaders = { 'content-type': 'application/json', 'x-chat-token': created.token };
-  const sent = await fetch(`${base}/api/chat/sessions/${created.session.id}/messages`, { method: 'POST', headers: visitorHeaders, body: JSON.stringify({ text: 'Necesito ayuda' }) });
+  const sent = await fetch(`${base}/api/chat/sessions/${created.session.id}/messages`, {
+    method: 'POST',
+    headers: visitorHeaders,
+    body: JSON.stringify({ text: 'Necesito ayuda' })
+  });
   assert.equal(sent.status, 201);
-  assert.equal((await fetch(`${base}/api/chat/sessions/${created.session.id}/messages`, { headers: { 'x-chat-token': 'wrong-token' } })).status, 401);
+  assert.equal(
+    (
+      await fetch(`${base}/api/chat/sessions/${created.session.id}/messages`, {
+        headers: { 'x-chat-token': 'wrong-token' }
+      })
+    ).status,
+    401
+  );
 
-  const denied = await fetch(base + '/api/operator/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: 'wrong' }) });
+  const denied = await fetch(base + '/api/operator/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'wrong' })
+  });
   assert.equal(denied.status, 401);
-  const login = await fetch(base + '/api/operator/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: 'test-operator-secret' }) });
+  const login = await fetch(base + '/api/operator/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'test-operator-secret' })
+  });
   assert.equal(login.status, 200);
   const operatorCookie = login.headers.get('set-cookie').split(';')[0];
   const sessions = await (await fetch(base + '/api/operator/sessions', { headers: { cookie: operatorCookie } })).json();
   assert.equal(sessions.sessions.length, 1);
-  const reply = await fetch(`${base}/api/operator/sessions/${created.session.id}/messages`, { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ text: 'Hola, te atendemos.' }) });
+  const reply = await fetch(`${base}/api/operator/sessions/${created.session.id}/messages`, {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Hola, te atendemos.' })
+  });
   assert.equal(reply.status, 201);
-  const messages = await (await fetch(`${base}/api/chat/sessions/${created.session.id}/messages`, { headers: { 'x-chat-token': created.token } })).json();
-  assert.deepEqual(messages.messages.map(item => item.sender), ['visitor', 'operator']);
+  const messages = await (
+    await fetch(`${base}/api/chat/sessions/${created.session.id}/messages`, {
+      headers: { 'x-chat-token': created.token }
+    })
+  ).json();
+  assert.deepEqual(
+    messages.messages.map((item) => item.sender),
+    ['visitor', 'operator']
+  );
 });
 
-test('customer and operator share balances, withdrawals and banking messages', async t => {
+test('customer and operator share balances, withdrawals and banking messages', async (t) => {
   const server = createServer({ operatorKey: 'test-operator-secret', sessionSecret: 'test-session-secret' });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => new Promise(resolve => server.close(resolve)));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
 
   assert.equal((await fetch(base + '/internet-banking')).status, 200);
-  const login = await fetch(base + '/api/banking/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'customer.demo', password: 'Demo2026!' }) });
+  const login = await fetch(base + '/api/banking/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'customer.demo', password: 'Demo2026!' })
+  });
   assert.equal(login.status, 200);
   const customerCookie = login.headers.get('set-cookie').split(';')[0];
   const before = await (await fetch(base + '/api/banking/me', { headers: { cookie: customerCookie } })).json();
   assert.equal(before.customer.balance, 12840.5);
-  const withdrawal = await fetch(base + '/api/banking/transactions', { method: 'POST', headers: { cookie: customerCookie, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'withdrawal', amount: 140.5, description: 'Test withdrawal' }) });
+  const withdrawal = await fetch(base + '/api/banking/transactions', {
+    method: 'POST',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'withdrawal', amount: 140.5, description: 'Test withdrawal' })
+  });
   assert.equal(withdrawal.status, 201);
   assert.equal((await withdrawal.json()).customer.balance, 12700);
-  const denied = await fetch(base + '/api/banking/transactions', { method: 'POST', headers: { cookie: customerCookie, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'withdrawal', amount: 999999 }) });
+  const denied = await fetch(base + '/api/banking/transactions', {
+    method: 'POST',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'withdrawal', amount: 999999 })
+  });
   assert.equal(denied.status, 409);
 
-  const operatorLogin = await fetch(base + '/api/operator/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: 'test-operator-secret' }) });
+  const operatorLogin = await fetch(base + '/api/operator/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'test-operator-secret' })
+  });
   const operatorCookie = operatorLogin.headers.get('set-cookie').split(';')[0];
-  const createdCustomer = await fetch(base + '/api/operator/customers', { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Alex Morgan', username: 'alex.morgan', password: 'SecurePass123!', openingBalance: 250, currency: 'EUR' }) });
+  const createdCustomer = await fetch(base + '/api/operator/customers', {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Alex Morgan',
+      username: 'alex.morgan',
+      password: 'SecurePass123!',
+      openingBalance: 250,
+      currency: 'EUR'
+    })
+  });
   assert.equal(createdCustomer.status, 201);
   const createdCustomerData = await createdCustomer.json();
   assert.equal(createdCustomerData.customer.balance, 250);
   assert.equal(createdCustomerData.customer.currency, 'EUR');
   assert.match(createdCustomerData.customer.accountNumber, /^DEMO-/);
-  const duplicateCustomer = await fetch(base + '/api/operator/customers', { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Another Alex', username: 'alex.morgan', password: 'AnotherPass123!', openingBalance: 0, currency: 'USD' }) });
+  const duplicateCustomer = await fetch(base + '/api/operator/customers', {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Another Alex',
+      username: 'alex.morgan',
+      password: 'AnotherPass123!',
+      openingBalance: 0,
+      currency: 'USD'
+    })
+  });
   assert.equal(duplicateCustomer.status, 409);
-  const newLogin = await fetch(base + '/api/banking/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'alex.morgan', password: 'SecurePass123!' }) });
+  const newLogin = await fetch(base + '/api/banking/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'alex.morgan', password: 'SecurePass123!' })
+  });
   assert.equal(newLogin.status, 200);
-  const customers = await (await fetch(base + '/api/operator/customers', { headers: { cookie: operatorCookie } })).json();
+  const customers = await (
+    await fetch(base + '/api/operator/customers', { headers: { cookie: operatorCookie } })
+  ).json();
   assert.equal(customers.customers.length, 2);
   const id = customers.customers[0].id;
-  const credit = await fetch(`${base}/api/operator/customers/${id}/transactions`, { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'credit', amount: 300, description: 'Approved adjustment' }) });
+  const credit = await fetch(`${base}/api/operator/customers/${id}/transactions`, {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'credit', amount: 300, description: 'Approved adjustment' })
+  });
   assert.equal(credit.status, 201);
   assert.equal((await credit.json()).customer.balance, 13000);
-  await fetch(base + '/api/banking/messages', { method: 'POST', headers: { cookie: customerCookie, 'content-type': 'application/json' }, body: JSON.stringify({ text: 'I need help with my withdrawal.' }) });
-  await fetch(`${base}/api/operator/customers/${id}/messages`, { method: 'POST', headers: { cookie: operatorCookie, 'content-type': 'application/json' }, body: JSON.stringify({ text: 'We are reviewing it.' }) });
+  await fetch(base + '/api/banking/messages', {
+    method: 'POST',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'I need help with my withdrawal.' })
+  });
+  await fetch(`${base}/api/operator/customers/${id}/messages`, {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'We are reviewing it.' })
+  });
   const after = await (await fetch(base + '/api/banking/me', { headers: { cookie: customerCookie } })).json();
-  assert.deepEqual(after.messages.map(item => item.sender), ['customer', 'operator']);
-  const deleted = await fetch(`${base}/api/operator/customers/${createdCustomerData.customer.id}`, { method: 'DELETE', headers: { cookie: operatorCookie } });
+  assert.deepEqual(
+    after.messages.map((item) => item.sender),
+    ['customer', 'operator']
+  );
+  const deleted = await fetch(`${base}/api/operator/customers/${createdCustomerData.customer.id}`, {
+    method: 'DELETE',
+    headers: { cookie: operatorCookie }
+  });
   assert.equal(deleted.status, 200);
-  const customersAfterDelete = await (await fetch(base + '/api/operator/customers', { headers: { cookie: operatorCookie } })).json();
+  const customersAfterDelete = await (
+    await fetch(base + '/api/operator/customers', { headers: { cookie: operatorCookie } })
+  ).json();
   assert.equal(customersAfterDelete.customers.length, 1);
-  const deletedLogin = await fetch(base + '/api/banking/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'alex.morgan', password: 'SecurePass123!' }) });
+  const deletedLogin = await fetch(base + '/api/banking/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'alex.morgan', password: 'SecurePass123!' })
+  });
   assert.equal(deletedLogin.status, 401);
 });
