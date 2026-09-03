@@ -4,58 +4,97 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <title>Internet Banking</title>
+    <meta name="theme-color" content="#f4f4f1" />
+    <title>My account — Ziraat</title>
+    <meta name="description" content="A clear, responsive customer banking dashboard." />
     <link rel="stylesheet" href="/internet-banking/banking.css" />
     <link rel="stylesheet" href="/hidden.css" />
     <script type="module" src="/internet-banking/banking.js"></script>
   </head>
   <body>
     <main id="login" class="login">
-      <section class="login-art">
-        <a href="/en" class="brand"><span>Z</span><strong>Ziraat </strong></a>
-        <div>
-          <p>Personal banking</p>
-          <h1>Your money, clear and always in view.</h1>
+      <section class="login-art" aria-label="Welcome">
+        <a href="/en" class="brand"><span class="brand-mark">Z</span><strong>Ziraat</strong></a>
+        <div class="login-copy">
+          <p class="eyebrow">Personal banking</p>
+          <h1>Everything that matters, at a glance.</h1>
+          <p>See your balance, move money and talk to support from one calm, secure place.</p>
         </div>
-        <small>This experience simulates internal transactions. It does not move real money.</small>
+        <small>Secure demo environment · No real money is moved</small>
       </section>
-      <form id="login-form">
-        <p class="eyebrow">Secure access</p>
-        <h2>Welcome</h2>
-        <p>Sign in to your banking account.</p>
-        <label>Username<input name="username" autocomplete="username" value="customer.portal" required /></label
-        ><label
-          >Password<input
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            value="Portal2026!"
-            required /></label
-        ><button>Sign in</button>
-
-        <p class="error" role="alert"></p>
-      </form>
+      <section class="login-panel">
+        <form id="login-form">
+          <a href="/en" class="mobile-brand brand"><span class="brand-mark">Z</span><strong>Ziraat</strong></a>
+          <p class="eyebrow">Secure access</p>
+          <h2>Welcome back</h2>
+          <p class="form-intro">Sign in to continue to your account.</p>
+          <label>Username<input name="username" autocomplete="username" value="customer.portal" required /></label>
+          <label
+            >Password<input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              value="Portal2026!"
+              required
+          /></label>
+          <button class="login-submit">Sign in <span aria-hidden="true">↗</span></button>
+          <p class="error" role="alert"></p>
+        </form>
+      </section>
     </main>
+
     <main id="app" class="app" hidden>
-      <aside>
-        <a href="/en" class="brand"><span>Z</span><strong>Ziraat</strong></a>
-        <nav>
-          <button class="active" type="button">Overview</button><button id="focus-move" type="button">Transact</button
-          ><button id="focus-message" type="button">Messages</button>
+      <aside class="side-nav">
+        <a href="/en" class="brand"><span class="brand-mark">Z</span><strong>Ziraat</strong></a>
+        <nav aria-label="Main navigation">
+          <button class="nav-item active" type="button" data-view="home" aria-current="page">
+            <span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span>
+          </button>
+          <button class="nav-item" id="focus-move" type="button" data-view="transfer">
+            <span class="nav-icon" aria-hidden="true">↗</span><span>Transfer</span>
+          </button>
+          <button class="nav-item" id="focus-activity" type="button" data-view="activity">
+            <span class="nav-icon" aria-hidden="true">⌁</span><span>Activity</span>
+          </button>
+          <button class="nav-item" id="focus-message" type="button" data-view="support">
+            <span class="nav-icon" aria-hidden="true">◌</span><span>Support</span>
+          </button>
         </nav>
-        <button id="logout" class="logout" type="button">Sign out</button>
+        <button id="logout" class="logout" type="button"><span aria-hidden="true">↙</span><span>Sign out</span></button>
       </aside>
+
       <section class="content">
-        <header>
-          <div>
-            <p id="greeting">Good morning</p>
-            <h1 id="customer-name">Customer</h1>
+        <header class="topbar">
+          <div class="welcome">
+            <div class="avatar" id="avatar">PC</div>
+            <div>
+              <p id="greeting">Good morning,</p>
+              <h1 id="customer-name">Customer</h1>
+            </div>
           </div>
-          <div class="avatar">DC</div>
+          <button class="notification" type="button" aria-label="Notifications">
+            <span aria-hidden="true">♧</span><i></i>
+          </button>
         </header>
         <div id="dashboard"></div>
-        <p id="app-error" class="error" role="alert"></p>
+        <p id="app-error" class="error toast" role="alert"></p>
       </section>
+
+      <nav class="mobile-nav" aria-label="Mobile navigation">
+        <button class="active" type="button" data-mobile-target="top">
+          <span aria-hidden="true">⌂</span><small>Home</small>
+        </button>
+        <button type="button" data-mobile-target="activity">
+          <span aria-hidden="true">⌁</span><small>Activity</small>
+        </button>
+        <button class="scan" type="button" data-mobile-target="transfer" aria-label="Transfer money">
+          <span aria-hidden="true">↗</span>
+        </button>
+        <button type="button" data-mobile-target="support">
+          <span aria-hidden="true">◌</span><small>Support</small>
+        </button>
+        <button id="mobile-logout" type="button"><span aria-hidden="true">↙</span><small>Exit</small></button>
+      </nav>
     </main>
   </body>
 </html>
