@@ -546,6 +546,7 @@ async function refreshChat() {
 }
 function openChat() {
   chatPanel.hidden = false;
+  document.documentElement.classList.add('chat-open');
   $('.chat-launch').setAttribute('aria-expanded', 'true');
   $('#chat-text').focus();
   refreshChat();
@@ -554,6 +555,7 @@ function openChat() {
 }
 function closeChat() {
   chatPanel.hidden = true;
+  document.documentElement.classList.remove('chat-open');
   $('.chat-launch').setAttribute('aria-expanded', 'false');
   clearInterval(chatTimer);
   $('.chat-launch').focus();

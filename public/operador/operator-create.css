@@ -81,6 +81,31 @@
   outline: 2px solid #c9182433;
   border-color: var(--red);
 }
+.banking-fields-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.banking-fields-title strong,
+.banking-fields-title small {
+  display: block;
+}
+.banking-fields-title small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.banking-fields-title button {
+  border: 1px solid var(--ink);
+  background: #fff;
+  padding: 9px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
 .dialog-note {
   color: var(--muted);
   font-size: 13px;

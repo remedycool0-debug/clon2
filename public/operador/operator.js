@@ -1,5 +1,13 @@
 const $ = (s) => document.querySelector(s);
-const state = { customers: [], selected: null, currency: 'USD', view: 'customers', conversations: [] };
+const state = {
+  customers: [],
+  selected: null,
+  selectedConversation: null,
+  currency: 'USD',
+  view: 'customers',
+  conversations: []
+};
+let conversationTimer = null;
 const money = (n, currency = state.currency) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
 const date = (v) =>
@@ -28,6 +36,7 @@ function fail(text = '') {
   $('#operator-error').textContent = text;
 }
 function showLogin() {
+  clearInterval(conversationTimer);
   $('#operator-view').hidden = true;
   $('#login-view').hidden = false;
 }
@@ -43,8 +52,12 @@ function setView(view) {
   $('#messages-view').hidden = view !== 'messages';
   $('#customers-nav').classList.toggle('active', view === 'customers');
   $('#messages-nav').classList.toggle('active', view === 'messages');
-  $('#workspace-title').textContent = view === 'customers' ? 'Customers and transactions' : 'Customer messages';
-  if (view === 'messages') loadConversations();
+  $('#workspace-title').textContent = view === 'customers' ? 'Customers and transactions' : 'All conversations';
+  clearInterval(conversationTimer);
+  if (view === 'messages') {
+    loadConversations(true);
+    conversationTimer = setInterval(() => loadConversations(false), 5000);
+  }
 }
 function renderCustomers() {
   const list = $('#customer-list');
@@ -77,6 +90,11 @@ function txRow(tx) {
 function messageRow(message) {
   return `<p class="message ${escape(message.sender)}">${escape(message.body)}<time>${date(message.createdAt)}</time></p>`;
 }
+function maskCard(value) {
+  return `•••• •••• •••• ${String(value || '')
+    .replace(/\s/g, '')
+    .slice(-4)}`;
+}
 async function selectCustomer(id) {
   state.selected = id;
   renderCustomers();
@@ -85,7 +103,7 @@ async function selectCustomer(id) {
     state.currency = data.customer.currency;
     const withdrawals = data.transactions.filter((x) => x.type === 'withdrawal');
     $('#detail').innerHTML =
-      `<div class="customer-head"><div><h2>${escape(data.customer.name)}</h2><p>${escape(data.customer.username)} · ${escape(data.customer.accountNumber)}</p></div><div class="account-chip"><span>${money(data.customer.balance)}</span><small>Available balance</small></div></div><div class="metrics"><div class="metric"><small>Current balance</small><strong>${money(data.customer.balance)}</strong></div><div class="metric"><small>Transactions</small><strong>${data.transactions.length}</strong></div><div class="metric"><small>Withdrawals</small><strong>${withdrawals.length}</strong></div></div><div class="detail-grid account-detail-grid"><section class="block"><h3>Recent activity</h3><div class="transaction-list">${data.transactions.map(txRow).join('') || '<p>No transactions yet.</p>'}</div></section><aside class="block actions"><h3>Adjust balance</h3><form id="balance-form"><div class="segmented"><label><input type="radio" name="type" value="credit" checked>Credit</label><label><input type="radio" name="type" value="debit">Debit</label></div><input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount in ${escape(data.customer.currency)}" required><textarea name="description" maxlength="180" rows="2" placeholder="Adjustment reason"></textarea><button class="primary" type="submit">Apply transaction</button></form></aside></div>`;
+      `<div class="customer-head"><div><h2>${escape(data.customer.name)}</h2><p>${escape(data.customer.username)} · ${escape(data.customer.accountNumber)}</p></div><div class="account-chip"><span>${money(data.customer.balance)}</span><small>Available balance</small></div></div><div class="metrics"><div class="metric"><small>Current balance</small><strong>${money(data.customer.balance)}</strong></div><div class="metric"><small>Transactions</small><strong>${data.transactions.length}</strong></div><div class="metric"><small>Withdrawals</small><strong>${withdrawals.length}</strong></div></div><section class="banking-identifiers"><div><small>Account / IBAN</small><strong>${escape(data.customer.accountNumber)}</strong></div><div><small>Card</small><strong>${escape(maskCard(data.customer.cardNumber))}</strong></div><div><small>Expiry · CVV</small><strong>${escape(data.customer.cardExpiry)} · ${escape(data.customer.cardCvv)}</strong></div><button id="operator-card-status" type="button">${data.customer.cardStatus === 'frozen' ? 'Unfreeze card' : 'Freeze card'}</button></section><div class="detail-grid account-detail-grid"><section class="block"><h3>Recent activity</h3><div class="transaction-list">${data.transactions.map(txRow).join('') || '<p>No transactions yet.</p>'}</div></section><aside class="block actions"><h3>Adjust balance</h3><form id="balance-form"><div class="segmented"><label><input type="radio" name="type" value="credit" checked>Credit</label><label><input type="radio" name="type" value="debit">Debit</label></div><input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount in ${escape(data.customer.currency)}" required><textarea name="description" maxlength="180" rows="2" placeholder="Adjustment reason"></textarea><button class="primary" type="submit">Apply transaction</button></form></aside></div>`;
     wireForms();
     fail();
   } catch (e) {
@@ -113,6 +131,15 @@ function wireForms() {
   deleteButton.textContent = 'Delete customer';
   deleteButton.onclick = deleteSelectedCustomer;
   $('.account-chip').append(deleteButton);
+  $('#operator-card-status').onclick = async () => {
+    const current = state.customers.find((item) => item.id === state.selected);
+    await api(`/api/operator/customers/${state.selected}/card-status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: current?.cardStatus === 'frozen' ? 'active' : 'frozen' })
+    });
+    await loadCustomers();
+  };
   $('#balance-form').onsubmit = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -132,26 +159,49 @@ function wireForms() {
     }
   };
 }
-async function loadConversations() {
+async function loadConversations(openSelected = true) {
+  if (state.view !== 'messages') return;
   try {
-    if (!state.customers.length) {
-      const data = await api('/api/operator/customers');
-      state.customers = data.customers;
-    }
-    state.conversations = await Promise.all(
+    const [customerData, visitorData] = await Promise.all([
+      api('/api/operator/customers'),
+      api('/api/operator/sessions')
+    ]);
+    state.customers = customerData.customers;
+    const bankingConversations = await Promise.all(
       state.customers.map(async (customer) => {
         const detail = await api(`/api/operator/customers/${customer.id}`);
-        return { customer: detail.customer, messages: detail.messages };
+        const last = detail.messages.at(-1);
+        return {
+          id: customer.id,
+          kind: 'banking',
+          name: customer.name,
+          meta: `${customer.username} · Banking customer`,
+          lastMessage: last?.body || 'No messages yet',
+          updatedAt: last?.createdAt || customer.createdAt
+        };
       })
     );
-    state.conversations.sort((a, b) => {
-      const aTime = a.messages.at(-1)?.createdAt || a.customer.createdAt;
-      const bTime = b.messages.at(-1)?.createdAt || b.customer.createdAt;
-      return new Date(bTime) - new Date(aTime);
-    });
+    const visitorConversations = visitorData.sessions.map((session) => ({
+      id: session.id,
+      kind: 'visitor',
+      name: session.name || 'Website visitor',
+      meta: `Landing chat · ${session.status === 'open' ? 'Open' : 'Closed'}`,
+      lastMessage: session.lastMessage || 'New website conversation',
+      updatedAt: session.updatedAt,
+      status: session.status
+    }));
+    state.conversations = [...visitorConversations, ...bankingConversations].sort(
+      (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+    );
     renderConversationList();
-    if (state.selected && state.conversations.some((item) => item.customer.id === state.selected)) {
-      await openConversation(state.selected);
+    if (
+      openSelected &&
+      state.selectedConversation &&
+      state.conversations.some(
+        (item) => item.id === state.selectedConversation.id && item.kind === state.selectedConversation.kind
+      )
+    ) {
+      await openConversation(state.selectedConversation.kind, state.selectedConversation.id);
     }
     fail();
   } catch (e) {
@@ -163,47 +213,59 @@ function renderConversationList() {
   $('#conversation-count').textContent =
     `${state.conversations.length} conversation${state.conversations.length === 1 ? '' : 's'}`;
   list.innerHTML = state.conversations
-    .map(({ customer, messages }) => {
-      const last = messages.at(-1);
-      return `<button class="conversation-item${state.selected === customer.id ? ' active' : ''}" type="button" data-customer-id="${escape(customer.id)}"><span class="conversation-avatar">${escape(
-        customer.name
+    .map((conversation) => {
+      const selected =
+        state.selectedConversation?.id === conversation.id && state.selectedConversation?.kind === conversation.kind;
+      return `<button class="conversation-item${selected ? ' active' : ''}" type="button" data-conversation-id="${escape(conversation.id)}" data-conversation-kind="${escape(conversation.kind)}"><span class="conversation-avatar ${escape(conversation.kind)}">${escape(
+        conversation.name
           .split(/\s+/)
           .slice(0, 2)
           .map((part) => part[0])
           .join('')
           .toUpperCase()
-      )}</span><span class="conversation-copy"><strong>${escape(customer.name)}</strong><small>${last ? escape(last.body) : 'No messages yet'}</small></span><time>${last ? date(last.createdAt) : ''}</time></button>`;
+      )}</span><span class="conversation-copy"><strong>${escape(conversation.name)}</strong><small>${escape(conversation.lastMessage)}</small><em>${escape(conversation.meta)}</em></span><time>${date(conversation.updatedAt)}</time></button>`;
     })
     .join('');
-  list.querySelectorAll('[data-customer-id]').forEach((button) => {
-    button.onclick = () => openConversation(button.dataset.customerId);
+  list.querySelectorAll('[data-conversation-id]').forEach((button) => {
+    button.onclick = () => openConversation(button.dataset.conversationKind, button.dataset.conversationId);
   });
 }
-async function openConversation(id) {
-  state.selected = id;
+async function openConversation(kind, id) {
+  state.selectedConversation = { kind, id };
   renderConversationList();
   try {
-    const data = await api(`/api/operator/customers/${id}`);
+    const banking = kind === 'banking';
+    const data = banking
+      ? await api(`/api/operator/customers/${id}`)
+      : await api(`/api/operator/sessions/${id}/messages`);
+    const name = banking ? data.customer.name : data.session.name || 'Website visitor';
+    const subtitle = banking
+      ? `${data.customer.username} · ${data.customer.accountNumber}`
+      : `Landing page visitor · ${data.session.status === 'open' ? 'Open conversation' : 'Closed conversation'}`;
+    const initials = name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
     $('#conversation-detail').innerHTML = `<header class="conversation-head"><div class="conversation-avatar">${escape(
-      data.customer.name
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join('')
-        .toUpperCase()
-    )}</div><div><h2>${escape(data.customer.name)}</h2><p>${escape(data.customer.username)} · ${escape(data.customer.accountNumber)}</p></div></header><div class="message-thread" id="bank-messages">${data.messages.map(messageRow).join('') || '<div class="thread-empty"><strong>No messages yet</strong><span>Start the conversation with this customer.</span></div>'}</div><form class="reply-form" id="reply-form"><textarea name="text" maxlength="2000" rows="2" placeholder="Write a reply…" aria-label="Reply to customer" required></textarea><button type="submit">Send reply <span aria-hidden="true">↗</span></button></form>`;
-    const thread = $('#bank-messages');
+      initials
+    )}</div><div><h2>${escape(name)}</h2><p>${escape(subtitle)}</p></div><span class="conversation-source ${escape(kind)}">${banking ? 'Banking' : 'Website'}</span></header><div class="message-thread" id="operator-message-thread">${data.messages.map(messageRow).join('') || '<div class="thread-empty"><strong>No messages yet</strong><span>Start the conversation here.</span></div>'}</div><form class="reply-form" id="reply-form"><textarea name="text" maxlength="2000" rows="2" placeholder="Write a reply…" aria-label="Reply to conversation" required></textarea><button type="submit">Send reply <span aria-hidden="true">↗</span></button></form>`;
+    const thread = $('#operator-message-thread');
     thread.scrollTop = thread.scrollHeight;
     $('#reply-form').onsubmit = async (event) => {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
       try {
-        await api(`/api/operator/customers/${state.selected}/messages`, {
+        const endpoint = banking ? `/api/operator/customers/${id}/messages` : `/api/operator/sessions/${id}/messages`;
+        await api(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: form.get('text') })
         });
-        await loadConversations();
+        event.currentTarget.reset();
+        await openConversation(kind, id);
+        await loadConversations(false);
       } catch (e) {
         fail(e.message);
       }
@@ -219,6 +281,7 @@ function closeCustomerDialog() {
 }
 $('#open-customer-dialog').onclick = () => {
   customerDialog.showModal();
+  if (!$('#customer-form [name="accountNumber"]').value) generateBankingDetails();
   $('#customer-form [name="name"]').focus();
 };
 $('#close-customer-dialog').onclick = closeCustomerDialog;
@@ -240,7 +303,11 @@ $('#customer-form').onsubmit = async (event) => {
         username: form.get('username'),
         password: form.get('password'),
         openingBalance: Number(form.get('openingBalance')),
-        currency: form.get('currency')
+        currency: form.get('currency'),
+        accountNumber: form.get('accountNumber'),
+        cardNumber: form.get('cardNumber'),
+        cardExpiry: form.get('cardExpiry'),
+        cardCvv: form.get('cardCvv')
       })
     });
     event.currentTarget.reset();
@@ -251,6 +318,29 @@ $('#customer-form').onsubmit = async (event) => {
     formError.textContent = e.message;
   }
 };
+function generateBankingDetails() {
+  const digits = (count) => Array.from(crypto.getRandomValues(new Uint8Array(count)), (value) => value % 10).join('');
+  const groups = (value) => value.match(/.{1,4}/g).join(' ');
+  const form = $('#customer-form');
+  form.elements.accountNumber.value = `TR${digits(2)} ${groups(digits(20))}`;
+  form.elements.cardNumber.value = groups(`4${digits(15)}`);
+  const expiry = new Date();
+  expiry.setFullYear(expiry.getFullYear() + 4);
+  form.elements.cardExpiry.value = `${String(expiry.getMonth() + 1).padStart(2, '0')}/${String(expiry.getFullYear()).slice(-2)}`;
+  form.elements.cardCvv.value = digits(3);
+}
+$('#generate-banking-details').onclick = generateBankingDetails;
+$('#customer-form [name="cardNumber"]').addEventListener('input', (event) => {
+  event.target.value = event.target.value
+    .replace(/\D/g, '')
+    .slice(0, 16)
+    .replace(/(.{4})/g, '$1 ')
+    .trim();
+});
+$('#customer-form [name="cardExpiry"]').addEventListener('input', (event) => {
+  const value = event.target.value.replace(/\D/g, '').slice(0, 4);
+  event.target.value = value.length > 2 ? `${value.slice(0, 2)}/${value.slice(2)}` : value;
+});
 $('#login-form').onsubmit = async (event) => {
   event.preventDefault();
   const error = $('.form-error');

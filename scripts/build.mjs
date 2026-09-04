@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, copyFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const source = await readFile(new URL('recursos/original.html', root), 'utf8');
@@ -51,6 +51,8 @@ ${cookie}
 <dialog id="local-dialog" aria-labelledby="dialog-title"><button class="dialog-close" aria-label="Close dialog">×</button><h2 id="dialog-title"></h2><div id="dialog-content"></div></dialog>
 </body></html>`;
 await mkdir(new URL('public/', root), { recursive: true });
+await mkdir(new URL('public/vendor/', root), { recursive: true });
+await copyFile(new URL('node_modules/gsap/dist/gsap.min.js', root), new URL('public/vendor/gsap.min.js', root));
 await writeFile(new URL('public/index.html', root), html);
 const refs = [...html.matchAll(/(?:src|href)="(\/[^"#]+)"/g)].map((m) => m[1]).filter((p) => p !== '/en');
 for (const ref of new Set(refs)) await stat(new URL('public' + ref, root));

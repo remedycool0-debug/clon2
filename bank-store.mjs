@@ -4,12 +4,22 @@ import pg from 'pg';
 const { Pool } = pg;
 const nowIso = () => new Date().toISOString();
 const money = (value) => Math.round(Number(value) * 100);
-const accountNumber = () => `ACC-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+const accountNumber = () =>
+  `TR${crypto.randomInt(10, 100)} ${Array.from({ length: 5 }, () => crypto.randomInt(0, 10000).toString().padStart(4, '0')).join(' ')}`;
+const cardNumber = () =>
+  Array.from({ length: 4 }, () => crypto.randomInt(0, 10000).toString().padStart(4, '0')).join(' ');
+const cardExpiry = () =>
+  `${String(new Date().getMonth() + 1).padStart(2, '0')}/${String((new Date().getFullYear() + 4) % 100).padStart(2, '0')}`;
+const cardCvv = () => crypto.randomInt(0, 1000).toString().padStart(3, '0');
 const publicCustomer = (row) => ({
   id: row.id,
   username: row.username,
   name: row.name,
   accountNumber: row.account_number,
+  cardNumber: row.card_number,
+  cardExpiry: row.card_expiry,
+  cardCvv: row.card_cvv,
+  cardStatus: row.card_status || 'active',
   currency: row.currency,
   balance: Number(row.balance_cents) / 100,
   createdAt: row.created_at
@@ -30,6 +40,10 @@ export function createMemoryBankStore({
     username,
     name: 'Primary Customer',
     account_number: 'TR00 0000 0000 0000 0000 0001',
+    card_number: '4543 6701 1000 0001',
+    card_expiry: '09/30',
+    card_cvv: '271',
+    card_status: 'active',
     currency: 'USD',
     balance_cents: money(openingBalance),
     password_salt: salt,
@@ -70,7 +84,11 @@ export function createMemoryBankStore({
       username: newUsername,
       password: newPassword,
       currency,
-      openingBalance: initialBalance
+      openingBalance: initialBalance,
+      accountNumber: requestedAccountNumber,
+      cardNumber: requestedCardNumber,
+      cardExpiry: requestedCardExpiry,
+      cardCvv: requestedCardCvv
     }) {
       if ([...customers.values()].some((item) => item.username === newUsername)) return { error: 'username_exists' };
       const createdAt = nowIso();
@@ -80,7 +98,11 @@ export function createMemoryBankStore({
         id: crypto.randomUUID(),
         username: newUsername,
         name,
-        account_number: accountNumber(),
+        account_number: requestedAccountNumber || accountNumber(),
+        card_number: requestedCardNumber || cardNumber(),
+        card_expiry: requestedCardExpiry || cardExpiry(),
+        card_cvv: requestedCardCvv || cardCvv(),
+        card_status: 'active',
         currency,
         balance_cents: balanceCents,
         password_salt: customerSalt,
@@ -107,6 +129,12 @@ export function createMemoryBankStore({
       row.active = false;
       return true;
     },
+    async setCardStatus(id, status) {
+      const row = customers.get(id);
+      if (!row?.active) return null;
+      row.card_status = status;
+      return publicCustomer(row);
+    },
     async getTransactions(id, limit = 100) {
       return transactions
         .filter((item) => item.customerId === id)
@@ -118,7 +146,7 @@ export function createMemoryBankStore({
       if (!activeCustomer) return { error: 'not_found' };
       const cents = money(amount);
       if (!Number.isSafeInteger(cents) || cents <= 0) return { error: 'invalid_amount' };
-      const debit = type === 'withdrawal' || type === 'debit';
+      const debit = type === 'withdrawal' || type === 'debit' || type === 'payment';
       if (debit && activeCustomer.balance_cents < cents) return { error: 'insufficient_funds' };
       activeCustomer.balance_cents += debit ? -cents : cents;
       const row = {
@@ -160,6 +188,8 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
     CREATE TABLE IF NOT EXISTS bank_customers (
       id UUID PRIMARY KEY, username VARCHAR(80) UNIQUE NOT NULL, name VARCHAR(120) NOT NULL,
       account_number VARCHAR(40) UNIQUE NOT NULL, currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+      card_number VARCHAR(24) UNIQUE, card_expiry VARCHAR(5), card_cvv VARCHAR(4),
+      card_status VARCHAR(12) NOT NULL DEFAULT 'active',
       balance_cents BIGINT NOT NULL DEFAULT 0, password_salt TEXT NOT NULL, password_hash TEXT NOT NULL,
       active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -177,6 +207,12 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
     CREATE INDEX IF NOT EXISTS bank_messages_customer_idx ON bank_messages(customer_id, id);
   `);
   await pool.query('ALTER TABLE bank_customers ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE');
+  await pool.query('ALTER TABLE bank_customers ADD COLUMN IF NOT EXISTS card_number VARCHAR(24) UNIQUE');
+  await pool.query('ALTER TABLE bank_customers ADD COLUMN IF NOT EXISTS card_expiry VARCHAR(5)');
+  await pool.query('ALTER TABLE bank_customers ADD COLUMN IF NOT EXISTS card_cvv VARCHAR(4)');
+  await pool.query(
+    "ALTER TABLE bank_customers ADD COLUMN IF NOT EXISTS card_status VARCHAR(12) NOT NULL DEFAULT 'active'"
+  );
   const salt = crypto.randomBytes(16).toString('hex');
   const id = crypto.randomUUID();
   const inserted = await pool.query(
@@ -188,6 +224,18 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
     await pool.query(
       "INSERT INTO bank_transactions (customer_id,type,amount_cents,description,actor) VALUES ($1,'opening',$2,'Opening balance','system')",
       [id, money(seed.openingBalance)]
+    );
+  await pool.query(
+    'UPDATE bank_customers SET card_number=COALESCE(card_number,$1), card_expiry=COALESCE(card_expiry,$2), card_cvv=COALESCE(card_cvv,$3) WHERE username=$4',
+    [cardNumber(), cardExpiry(), cardCvv(), seed.username]
+  );
+  const customersMissingCard = await pool.query(
+    'SELECT id FROM bank_customers WHERE card_number IS NULL OR card_expiry IS NULL OR card_cvv IS NULL'
+  );
+  for (const row of customersMissingCard.rows)
+    await pool.query(
+      'UPDATE bank_customers SET card_number=COALESCE(card_number,$2), card_expiry=COALESCE(card_expiry,$3), card_cvv=COALESCE(card_cvv,$4) WHERE id=$1',
+      [row.id, cardNumber(), cardExpiry(), cardCvv()]
     );
   return {
     async close() {
@@ -206,7 +254,17 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
       const { rows } = await pool.query('SELECT * FROM bank_customers WHERE active=TRUE ORDER BY created_at');
       return rows.map(publicCustomer);
     },
-    async createCustomer({ name, username, password, currency, openingBalance }) {
+    async createCustomer({
+      name,
+      username,
+      password,
+      currency,
+      openingBalance,
+      accountNumber: requestedAccountNumber,
+      cardNumber: requestedCardNumber,
+      cardExpiry: requestedCardExpiry,
+      cardCvv: requestedCardCvv
+    }) {
       const client = await pool.connect();
       const id = crypto.randomUUID();
       const salt = crypto.randomBytes(16).toString('hex');
@@ -214,8 +272,20 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
       try {
         await client.query('BEGIN');
         const { rows } = await client.query(
-          'INSERT INTO bank_customers (id,username,name,account_number,currency,balance_cents,password_salt,password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
-          [id, username, name, accountNumber(), currency, balanceCents, salt, passwordHash(password, salt)]
+          'INSERT INTO bank_customers (id,username,name,account_number,card_number,card_expiry,card_cvv,currency,balance_cents,password_salt,password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *',
+          [
+            id,
+            username,
+            name,
+            requestedAccountNumber || accountNumber(),
+            requestedCardNumber || cardNumber(),
+            requestedCardExpiry || cardExpiry(),
+            requestedCardCvv || cardCvv(),
+            currency,
+            balanceCents,
+            salt,
+            passwordHash(password, salt)
+          ]
         );
         if (balanceCents > 0)
           await client.query(
@@ -236,6 +306,13 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
       const result = await pool.query('UPDATE bank_customers SET active=FALSE WHERE id=$1 AND active=TRUE', [id]);
       return result.rowCount === 1;
     },
+    async setCardStatus(id, status) {
+      const { rows } = await pool.query(
+        'UPDATE bank_customers SET card_status=$2 WHERE id=$1 AND active=TRUE RETURNING *',
+        [id, status]
+      );
+      return rows[0] ? publicCustomer(rows[0]) : null;
+    },
     async getTransactions(customerId, limit = 100) {
       const { rows } = await pool.query(
         'SELECT id,customer_id AS "customerId",type,amount_cents::float/100 AS amount,description,actor,created_at AS "createdAt" FROM bank_transactions WHERE customer_id=$1 ORDER BY id DESC LIMIT $2',
@@ -246,7 +323,7 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
     async transact({ customerId, type, amount, description, actor }) {
       const cents = money(amount);
       if (!Number.isSafeInteger(cents) || cents <= 0) return { error: 'invalid_amount' };
-      const debit = type === 'withdrawal' || type === 'debit';
+      const debit = type === 'withdrawal' || type === 'debit' || type === 'payment';
       const client = await pool.connect();
       try {
         await client.query('BEGIN');

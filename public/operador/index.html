@@ -71,7 +71,7 @@
           <section class="inbox-list-panel">
             <div class="section-title">
               <div>
-                <h2>Messages</h2>
+                <h2>All messages</h2>
                 <p id="conversation-count">0 conversations</p>
               </div>
               <button id="refresh-messages" class="icon-button" type="button" aria-label="Refresh messages">↻</button>
@@ -82,7 +82,7 @@
             <div class="empty-state">
               <span>INBOX</span>
               <h2>Select a conversation</h2>
-              <p>Choose a customer to review their messages and send a reply.</p>
+              <p>Choose a banking customer or website visitor to review their messages and reply.</p>
             </div>
           </section>
         </div>
@@ -133,6 +133,33 @@
               <option value="TRY">TRY</option>
             </select></label
           >
+          <div class="wide banking-fields-title">
+            <div>
+              <strong>Account and card details</strong><small>Enter them manually or generate a complete set.</small>
+            </div>
+            <button id="generate-banking-details" type="button">Generate details</button>
+          </div>
+          <label class="wide"
+            >Account number / IBAN<input name="accountNumber" maxlength="40" autocomplete="off" required /></label
+          ><label class="wide"
+            >Card number<input
+              name="cardNumber"
+              inputmode="numeric"
+              maxlength="19"
+              placeholder="0000 0000 0000 0000"
+              autocomplete="off"
+              required /></label
+          ><label
+            >Expiry<input
+              name="cardExpiry"
+              inputmode="numeric"
+              maxlength="5"
+              placeholder="MM/YY"
+              autocomplete="off"
+              required /></label
+          ><label
+            >CVV<input name="cardCvv" inputmode="numeric" maxlength="4" placeholder="000" autocomplete="off" required
+          /></label>
         </div>
         <p class="dialog-note">
           The password is securely hashed and cannot be viewed again after the account is created.

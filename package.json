@@ -17,6 +17,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "gsap": "^3.15.0",
     "pg": "^8.23.0"
   },
   "devDependencies": {

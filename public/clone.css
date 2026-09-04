@@ -36,5 +36,78 @@ html{scroll-behavior:smooth}body{overflow-x:hidden}button,input,select{font:inhe
   .header .navigation .sub-navigation ul li a:hover,.header .navigation .sub-navigation ul li a:focus{padding-left:16px!important;background:#f7f8f8!important;color:var(--brand)!important}
   .header .navigation .sub-navigation ul li a:hover:before,.header .navigation .sub-navigation ul li a:focus:before{display:none!important}
 }
+
+@media (max-width: 767px) {
+  html.chat-open,
+  html.chat-open body {
+    height: 100%;
+    overflow: hidden !important;
+  }
+  html.chat-open .cookie-box {
+    visibility: hidden !important;
+  }
+  .customer-chat {
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+    z-index: 20010 !important;
+  }
+  .customer-chat header {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 82px;
+    padding: max(18px, env(safe-area-inset-top)) 20px 18px;
+  }
+  .customer-chat header strong {
+    font-size: 20px;
+  }
+  .customer-chat header small {
+    font-size: 12px;
+  }
+  .customer-chat .chat-close {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 34px;
+  }
+  .chat-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    padding: 18px 16px;
+  }
+  .chat-welcome,
+  .chat-bubble {
+    max-width: 88%;
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+  .chat-form {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 82px;
+    padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  .chat-form textarea {
+    min-height: 56px;
+    padding: 13px;
+    font-size: 16px;
+  }
+  .chat-form button {
+    min-width: 72px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+  .chat-error {
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
 @media(max-width:991px){.mobile-navigation.open .search-box{position:relative}.mobile-navigation.open .sub-navigation-container,.mobile-navigation.open .sub-navigation,.mobile-navigation.open nav>ul>li.open ul{transition:none!important;opacity:1!important;visibility:visible!important}.mobile-navigation.open .navigation .sub-navigation ul{background:#f3f3f3;border:0!important}.mobile-navigation.open .navigation .sub-navigation ul li a{color:#30383c}.mobile-navigation.open .navigation .sub-navigation ul li+li{border-color:#ddd}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}

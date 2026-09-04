@@ -246,6 +246,10 @@ textarea {
   font-size: 13px;
   font-weight: 700;
 }
+.conversation-avatar.visitor {
+  background: #ffe6e9;
+  color: var(--red);
+}
 .conversation-copy {
   min-width: 0;
 }
@@ -258,6 +262,18 @@ textarea {
   overflow: hidden;
   color: var(--muted);
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conversation-copy em {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #7d8580;
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 .conversation-item time {
@@ -289,6 +305,22 @@ textarea {
 .conversation-head p {
   margin-top: 4px;
   color: var(--muted);
+}
+.conversation-source {
+  margin-left: auto;
+  padding: 7px 10px;
+  border: 1px solid #cbd4cd;
+  border-radius: 999px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.conversation-source.visitor {
+  border-color: #efbec4;
+  color: var(--red);
 }
 .message-thread {
   flex: 1;
@@ -465,6 +497,40 @@ textarea {
   background: var(--line);
   border: 1px solid var(--line);
   margin: 38px 0;
+}
+.banking-identifiers {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.8fr auto;
+  gap: 1px;
+  margin: -20px 0 38px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.banking-identifiers > div {
+  min-width: 0;
+  padding: 16px;
+  background: #f8f9f6;
+}
+.banking-identifiers small,
+.banking-identifiers strong {
+  display: block;
+}
+.banking-identifiers small {
+  margin-bottom: 7px;
+  color: var(--muted);
+}
+.banking-identifiers strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.banking-identifiers button {
+  border: 0;
+  background: var(--ink);
+  color: #fff;
+  padding: 0 18px;
+  font-weight: 700;
+  cursor: pointer;
 }
 .metric {
   background: #fff;
@@ -645,6 +711,12 @@ textarea {
   .detail-grid {
     grid-template-columns: 1fr;
   }
+  .banking-identifiers {
+    grid-template-columns: 1fr 1fr;
+  }
+  .banking-identifiers button {
+    min-height: 52px;
+  }
   .metrics {
     grid-template-columns: 1fr 1fr;
   }
@@ -695,6 +767,9 @@ textarea {
   .metrics {
     grid-template-columns: 1fr;
   }
+  .banking-identifiers {
+    grid-template-columns: 1fr;
+  }
   .metric:first-child {
     grid-column: auto;
   }
@@ -713,6 +788,13 @@ textarea {
     max-height: none;
     min-height: 620px;
     padding: 24px 18px;
+  }
+  .conversation-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .conversation-source {
+    margin-left: 56px;
   }
   .reply-form {
     grid-template-columns: 1fr;

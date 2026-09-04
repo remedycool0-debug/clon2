@@ -169,6 +169,7 @@ test('visitor and authenticated operator can exchange chat messages', async (t) 
   const operatorCookie = login.headers.get('set-cookie').split(';')[0];
   const sessions = await (await fetch(base + '/api/operator/sessions', { headers: { cookie: operatorCookie } })).json();
   assert.equal(sessions.sessions.length, 1);
+  assert.equal(sessions.sessions[0].lastMessage, 'Necesito ayuda');
   const reply = await fetch(`${base}/api/operator/sessions/${created.session.id}/messages`, {
     method: 'POST',
     headers: { cookie: operatorCookie, 'content-type': 'application/json' },
@@ -209,12 +210,25 @@ test('customer and operator share balances, withdrawals and banking messages', a
   });
   assert.equal(withdrawal.status, 201);
   assert.equal((await withdrawal.json()).customer.balance, 12700);
+  const payment = await fetch(base + '/api/banking/transactions', {
+    method: 'POST',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'payment', amount: 25, description: 'Electric bill' })
+  });
+  assert.equal(payment.status, 201);
+  assert.equal((await payment.json()).customer.balance, 12675);
   const denied = await fetch(base + '/api/banking/transactions', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },
     body: JSON.stringify({ type: 'withdrawal', amount: 999999 })
   });
   assert.equal(denied.status, 409);
+  const depositDenied = await fetch(base + '/api/banking/transactions', {
+    method: 'POST',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'deposit', amount: 50 })
+  });
+  assert.equal(depositDenied.status, 403);
 
   const operatorLogin = await fetch(base + '/api/operator/login', {
     method: 'POST',
@@ -230,14 +244,34 @@ test('customer and operator share balances, withdrawals and banking messages', a
       username: 'alex.morgan',
       password: 'SecurePass123!',
       openingBalance: 250,
-      currency: 'EUR'
+      currency: 'EUR',
+      accountNumber: 'TR99 1234 5678 9012 3456 7890',
+      cardNumber: '4543 6701 2222 3333',
+      cardExpiry: '09/30',
+      cardCvv: '731'
     })
   });
   assert.equal(createdCustomer.status, 201);
   const createdCustomerData = await createdCustomer.json();
   assert.equal(createdCustomerData.customer.balance, 250);
   assert.equal(createdCustomerData.customer.currency, 'EUR');
-  assert.match(createdCustomerData.customer.accountNumber, /^ACC-/);
+  assert.equal(createdCustomerData.customer.accountNumber, 'TR99 1234 5678 9012 3456 7890');
+  assert.equal(createdCustomerData.customer.cardNumber, '4543 6701 2222 3333');
+  assert.equal(createdCustomerData.customer.cardExpiry, '09/30');
+  assert.equal(createdCustomerData.customer.cardCvv, '731');
+  const cardFrozen = await fetch(`${base}/api/banking/card-status`, {
+    method: 'PATCH',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ status: 'frozen' })
+  });
+  assert.equal(cardFrozen.status, 200);
+  assert.equal((await cardFrozen.json()).customer.cardStatus, 'frozen');
+  const frozenPayment = await fetch(base + '/api/banking/transactions', {
+    method: 'POST',
+    headers: { cookie: customerCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'payment', amount: 10, description: 'Blocked payment' })
+  });
+  assert.equal(frozenPayment.status, 409);
   const duplicateCustomer = await fetch(base + '/api/operator/customers', {
     method: 'POST',
     headers: { cookie: operatorCookie, 'content-type': 'application/json' },
@@ -267,7 +301,7 @@ test('customer and operator share balances, withdrawals and banking messages', a
     body: JSON.stringify({ type: 'credit', amount: 300, description: 'Approved adjustment' })
   });
   assert.equal(credit.status, 201);
-  assert.equal((await credit.json()).customer.balance, 13000);
+  assert.equal((await credit.json()).customer.balance, 12975);
   await fetch(base + '/api/banking/messages', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },

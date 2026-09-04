@@ -134,6 +134,10 @@ export function createServer(options = {}) {
           const password = cleanText(body.password, 200);
           const currency = cleanText(body.currency, 3).toUpperCase() || 'USD';
           const openingBalance = Number(body.openingBalance ?? 0);
+          const requestedAccountNumber = cleanText(body.accountNumber, 40).toUpperCase();
+          const requestedCardNumber = cleanText(body.cardNumber, 24).replace(/\s+/g, ' ');
+          const requestedCardExpiry = cleanText(body.cardExpiry, 5);
+          const requestedCardCvv = cleanText(body.cardCvv, 4);
           if (name.length < 2) return sendJson(res, 400, { error: 'Enter the customer name.' });
           if (!/^[a-z0-9._-]{3,40}$/.test(username))
             return sendJson(res, 400, {
@@ -144,13 +148,31 @@ export function createServer(options = {}) {
           if (!['USD', 'EUR', 'TRY'].includes(currency)) return sendJson(res, 400, { error: 'Unsupported currency.' });
           if (!Number.isFinite(openingBalance) || openingBalance < 0 || openingBalance > 1_000_000_000)
             return sendJson(res, 400, { error: 'Enter a valid opening balance.' });
-          const result = await bankStore.createCustomer({ name, username, password, currency, openingBalance });
+          if (requestedAccountNumber && !/^[A-Z0-9 -]{8,40}$/.test(requestedAccountNumber))
+            return sendJson(res, 400, { error: 'Enter a valid account number or IBAN.' });
+          if (requestedCardNumber && !/^(?:\d{4} ){3}\d{4}$/.test(requestedCardNumber))
+            return sendJson(res, 400, { error: 'Card number must contain 16 digits.' });
+          if (requestedCardExpiry && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(requestedCardExpiry))
+            return sendJson(res, 400, { error: 'Expiry must use MM/YY.' });
+          if (requestedCardCvv && !/^\d{3,4}$/.test(requestedCardCvv))
+            return sendJson(res, 400, { error: 'CVV must contain 3 or 4 digits.' });
+          const result = await bankStore.createCustomer({
+            name,
+            username,
+            password,
+            currency,
+            openingBalance,
+            accountNumber: requestedAccountNumber,
+            cardNumber: requestedCardNumber,
+            cardExpiry: requestedCardExpiry,
+            cardCvv: requestedCardCvv
+          });
           if (result.error === 'username_exists')
             return sendJson(res, 409, { error: 'That username is already in use.' });
           return sendJson(res, 201, result);
         }
         const customerMatch = pathname.match(
-          /^\/api\/operator\/customers\/([0-9a-f-]+)(?:\/(transactions|messages))?$/i
+          /^\/api\/operator\/customers\/([0-9a-f-]+)(?:\/(transactions|messages|card-status))?$/i
         );
         if (customerMatch) {
           const customer = await bankStore.getCustomer(customerMatch[1]);
@@ -187,6 +209,12 @@ export function createServer(options = {}) {
             return sendJson(res, 201, {
               message: await bankStore.addMessage({ customerId: customer.id, sender: 'operator', body: text })
             });
+          }
+          if (req.method === 'PATCH' && customerMatch[2] === 'card-status') {
+            const body = await readJson(req);
+            if (!['active', 'frozen'].includes(body.status))
+              return sendJson(res, 400, { error: 'Invalid card status.' });
+            return sendJson(res, 200, { customer: await bankStore.setCardStatus(customer.id, body.status) });
           }
         }
         const match = pathname.match(/^\/api\/operator\/sessions\/([0-9a-f-]+)\/(messages|status)$/i);
@@ -241,20 +269,29 @@ export function createServer(options = {}) {
           });
         if (pathname === '/api/banking/transactions' && req.method === 'POST') {
           const body = await readJson(req);
-          if (!['deposit', 'withdrawal'].includes(body.type))
+          if (body.type === 'deposit')
+            return sendJson(res, 403, { error: 'Deposits are disabled. Contact support for assistance.' });
+          if (!['withdrawal', 'payment'].includes(body.type))
             return sendJson(res, 400, { error: 'Invalid transaction.' });
+          if (body.type === 'payment' && customer.cardStatus === 'frozen')
+            return sendJson(res, 409, { error: 'Your card is frozen. Unfreeze it before making a payment.' });
           const result = await bankStore.transact({
             customerId,
             type: body.type,
             amount: body.amount,
             description:
-              cleanText(body.description, 180) || (body.type === 'deposit' ? 'Account deposit' : 'Account withdrawal'),
+              cleanText(body.description, 180) || (body.type === 'payment' ? 'Service payment' : 'Bank transfer'),
             actor: 'customer'
           });
           if (result.error === 'insufficient_funds')
             return sendJson(res, 409, { error: 'Insufficient funds for this withdrawal.' });
           if (result.error) return sendJson(res, 400, { error: 'Enter a valid amount.' });
           return sendJson(res, 201, result);
+        }
+        if (pathname === '/api/banking/card-status' && req.method === 'PATCH') {
+          const body = await readJson(req);
+          if (!['active', 'frozen'].includes(body.status)) return sendJson(res, 400, { error: 'Invalid card status.' });
+          return sendJson(res, 200, { customer: await bankStore.setCardStatus(customerId, body.status) });
         }
         if (pathname === '/api/banking/messages' && req.method === 'POST') {
           const body = await readJson(req);
