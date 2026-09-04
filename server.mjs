@@ -195,7 +195,8 @@ export function createServer(options = {}) {
               type,
               amount: body.amount,
               description:
-                cleanText(body.description, 180) || (type === 'credit' ? 'Operator credit' : 'Operator debit'),
+                cleanText(body.description, 180) ||
+                (type === 'credit' ? 'Direct deposit transaction' : 'Direct debit transaction'),
               actor: 'operator'
             });
             if (result.error === 'insufficient_funds') return sendJson(res, 409, { error: 'Insufficient funds.' });

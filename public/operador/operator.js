@@ -255,7 +255,8 @@ async function openConversation(kind, id) {
     thread.scrollTop = thread.scrollHeight;
     $('#reply-form').onsubmit = async (event) => {
       event.preventDefault();
-      const form = new FormData(event.currentTarget);
+      const formElement = event.currentTarget;
+      const form = new FormData(formElement);
       try {
         const endpoint = banking ? `/api/operator/customers/${id}/messages` : `/api/operator/sessions/${id}/messages`;
         await api(endpoint, {
@@ -263,7 +264,7 @@ async function openConversation(kind, id) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: form.get('text') })
         });
-        event.currentTarget.reset();
+        formElement.reset();
         await openConversation(kind, id);
         await loadConversations(false);
       } catch (e) {
@@ -291,7 +292,8 @@ customerDialog.addEventListener('click', (event) => {
 });
 $('#customer-form').onsubmit = async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   const formError = $('#customer-form-error');
   formError.textContent = '';
   try {
@@ -310,7 +312,7 @@ $('#customer-form').onsubmit = async (event) => {
         cardCvv: form.get('cardCvv')
       })
     });
-    event.currentTarget.reset();
+    formElement.reset();
     closeCustomerDialog();
     state.selected = data.customer.id;
     await loadCustomers();

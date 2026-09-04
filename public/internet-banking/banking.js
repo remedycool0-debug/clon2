@@ -333,14 +333,15 @@ $('#contact-deposit-support').onclick = () => {
 };
 $('#message-form').onsubmit = async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   try {
     await api('/api/banking/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: form.get('text') })
     });
-    event.currentTarget.reset();
+    formElement.reset();
     await load();
     setChat(true);
   } catch (error) {
