@@ -19,6 +19,10 @@ const escape = (value) =>
     /[&<>'"]/g,
     (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]
   );
+const visitorName = (session) =>
+  session.name && session.name !== 'Visitor'
+    ? session.name
+    : `Visitor ${session.id.replaceAll('-', '').slice(0, 6).toUpperCase()}`;
 async function api(url, options) {
   const response = await fetch(url, options);
   let data = {};
@@ -184,7 +188,7 @@ async function loadConversations(openSelected = true) {
     const visitorConversations = visitorData.sessions.map((session) => ({
       id: session.id,
       kind: 'visitor',
-      name: session.name || 'Website visitor',
+      name: visitorName(session),
       meta: `Landing chat · ${session.status === 'open' ? 'Open' : 'Closed'}`,
       lastMessage: session.lastMessage || 'New website conversation',
       updatedAt: session.updatedAt,
@@ -238,7 +242,7 @@ async function openConversation(kind, id) {
     const data = banking
       ? await api(`/api/operator/customers/${id}`)
       : await api(`/api/operator/sessions/${id}/messages`);
-    const name = banking ? data.customer.name : data.session.name || 'Website visitor';
+    const name = banking ? data.customer.name : visitorName(data.session);
     const subtitle = banking
       ? `${data.customer.username} · ${data.customer.accountNumber}`
       : `Landing page visitor · ${data.session.status === 'open' ? 'Open conversation' : 'Closed conversation'}`;

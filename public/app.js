@@ -1,4 +1,5 @@
 import { depositTotal, monthlyPayment } from './calculations.js';
+import { getVisitorId, visitorDisplayName } from './visitor-identity.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -490,6 +491,7 @@ if (cookie) {
 const chatPanel = $('#customer-chat');
 const chatLog = $('.chat-messages', chatPanel);
 const chatError = $('.chat-error', chatPanel);
+const visitorId = getVisitorId();
 let chatSession = null;
 let chatTimer = null;
 let lastChatMessage = 0;
@@ -517,7 +519,7 @@ async function ensureChatSession() {
   const response = await fetch('/api/chat/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: '{}'
+    body: JSON.stringify({ name: visitorDisplayName(visitorId) })
   });
   if (!response.ok) throw new Error('The chat could not be started.');
   const data = await response.json();

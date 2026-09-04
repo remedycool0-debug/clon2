@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createServer } from '../server.mjs';
 import { depositTotal, monthlyPayment } from '../public/calculations.js';
+import { getVisitorId, visitorDisplayName } from '../public/visitor-identity.js';
 
 test('deposit uses the selected rate, term and withholding', () => {
   assert.equal(depositTotal(10000, 30, 365, 0), 13000);
@@ -17,6 +18,18 @@ test('loan repayment handles interest, zero interest and invalid inputs', () => 
   assert.ok(Math.abs(monthlyPayment(10000, 1, 12) - 888.4878867834) < 0.00001);
   assert.equal(monthlyPayment(10000, 3, 0), null);
   assert.equal(monthlyPayment(10000, -3, 12), null);
+});
+test('visitor identity is stable in browser storage and has a short display name', () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value)
+  };
+  const cryptoApi = { randomUUID: () => '8d12f63e-aaaa-4bbb-8ccc-123456789abc' };
+  const firstId = getVisitorId(storage, cryptoApi);
+  assert.equal(firstId, '8d12f63e-aaaa-4bbb-8ccc-123456789abc');
+  assert.equal(getVisitorId(storage, { randomUUID: () => assert.fail('must reuse the stored UUID') }), firstId);
+  assert.equal(visitorDisplayName(firstId), 'Visitor 8D12F6');
 });
 test('local HTTP server serves the homepage, assets and health, and rejects non-public paths', async (t) => {
   const server = createServer();
