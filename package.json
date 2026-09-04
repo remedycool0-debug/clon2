@@ -8,8 +8,8 @@
     "node": ">=22.8"
   },
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node --watch server.mjs",
+    "start": "node --env-file=.env server.mjs",
+    "dev": "node --env-file=.env --watch server.mjs",
     "build": "node scripts/build.mjs && node scripts/build-subpages.mjs",
     "prepare:menu-assets": "node scripts/prepare-menu-assets.mjs",
     "test": "node --test --test-isolation=none tests/*.test.mjs",

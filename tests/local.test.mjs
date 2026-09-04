@@ -200,7 +200,7 @@ test('visitor and authenticated operator can exchange chat messages', async (t) 
   );
 });
 
-test('customer and operator share balances, withdrawals and banking messages', async (t) => {
+test('customer transactions are blocked while operator adjustments and banking messages remain available', async (t) => {
   const server = createServer({ operatorKey: 'test-operator-secret', sessionSecret: 'test-session-secret' });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
@@ -221,21 +221,19 @@ test('customer and operator share balances, withdrawals and banking messages', a
     headers: { cookie: customerCookie, 'content-type': 'application/json' },
     body: JSON.stringify({ type: 'withdrawal', amount: 140.5, description: 'Test withdrawal' })
   });
-  assert.equal(withdrawal.status, 201);
-  assert.equal((await withdrawal.json()).customer.balance, 12700);
+  assert.equal(withdrawal.status, 403);
   const payment = await fetch(base + '/api/banking/transactions', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },
     body: JSON.stringify({ type: 'payment', amount: 25, description: 'Electric bill' })
   });
-  assert.equal(payment.status, 201);
-  assert.equal((await payment.json()).customer.balance, 12675);
+  assert.equal(payment.status, 403);
   const denied = await fetch(base + '/api/banking/transactions', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },
     body: JSON.stringify({ type: 'withdrawal', amount: 999999 })
   });
-  assert.equal(denied.status, 409);
+  assert.equal(denied.status, 403);
   const depositDenied = await fetch(base + '/api/banking/transactions', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },
@@ -284,7 +282,7 @@ test('customer and operator share balances, withdrawals and banking messages', a
     headers: { cookie: customerCookie, 'content-type': 'application/json' },
     body: JSON.stringify({ type: 'payment', amount: 10, description: 'Blocked payment' })
   });
-  assert.equal(frozenPayment.status, 409);
+  assert.equal(frozenPayment.status, 403);
   const duplicateCustomer = await fetch(base + '/api/operator/customers', {
     method: 'POST',
     headers: { cookie: operatorCookie, 'content-type': 'application/json' },
@@ -314,7 +312,7 @@ test('customer and operator share balances, withdrawals and banking messages', a
     body: JSON.stringify({ type: 'credit', amount: 300, description: 'Approved adjustment' })
   });
   assert.equal(credit.status, 201);
-  assert.equal((await credit.json()).customer.balance, 12975);
+  assert.equal((await credit.json()).customer.balance, 13140.5);
   await fetch(base + '/api/banking/messages', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },

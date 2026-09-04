@@ -270,24 +270,16 @@ export function createServer(options = {}) {
           });
         if (pathname === '/api/banking/transactions' && req.method === 'POST') {
           const body = await readJson(req);
-          if (body.type === 'deposit')
-            return sendJson(res, 403, { error: 'Deposits are disabled. Contact support for assistance.' });
-          if (!['withdrawal', 'payment'].includes(body.type))
+          if (!['deposit', 'withdrawal', 'payment'].includes(body.type))
             return sendJson(res, 400, { error: 'Invalid transaction.' });
-          if (body.type === 'payment' && customer.cardStatus === 'frozen')
-            return sendJson(res, 409, { error: 'Your card is frozen. Unfreeze it before making a payment.' });
-          const result = await bankStore.transact({
-            customerId,
-            type: body.type,
-            amount: body.amount,
-            description:
-              cleanText(body.description, 180) || (body.type === 'payment' ? 'Service payment' : 'Bank transfer'),
-            actor: 'customer'
+          const blockedLabel = {
+            deposit: 'Deposits',
+            withdrawal: 'Transfers',
+            payment: 'Bill payments'
+          }[body.type];
+          return sendJson(res, 403, {
+            error: `${blockedLabel} are disabled. Contact support for assistance.`
           });
-          if (result.error === 'insufficient_funds')
-            return sendJson(res, 409, { error: 'Insufficient funds for this withdrawal.' });
-          if (result.error) return sendJson(res, 400, { error: 'Enter a valid amount.' });
-          return sendJson(res, 201, result);
         }
         if (pathname === '/api/banking/card-status' && req.method === 'PATCH') {
           const body = await readJson(req);

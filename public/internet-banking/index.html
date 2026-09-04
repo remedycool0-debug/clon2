@@ -2,36 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#f4f4f1" />
-    <title>My account — Ziraat</title>
-    <meta name="description" content="A clear, responsive customer banking dashboard." />
+    <meta name="theme-color" content="#e10514" />
+    <title>My banking — Ziraat</title>
+    <meta name="description" content="Clear, secure digital banking available on any device." />
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/internet-banking/banking.css" />
+    <link rel="stylesheet" href="/internet-banking/banking.css?v=20260904-2" />
     <link rel="stylesheet" href="/hidden.css" />
     <script src="/vendor/gsap.min.js"></script>
-    <script type="module" src="/internet-banking/banking.js"></script>
+    <script type="module" src="/internet-banking/banking.js?v=20260904-2"></script>
   </head>
   <body>
     <main id="login" class="login">
       <section class="login-art" aria-label="Welcome">
-        <a href="/en" class="brand"><span class="brand-mark">Z</span><strong>Ziraat</strong></a>
+        <a href="/en" class="brand brand-on-dark"
+          ><span class="brand-mark-shell"><img src="/internet-banking/ziraat-mark.png" alt="" /></span
+          ><strong>Ziraat Bank</strong></a
+        >
         <div class="login-copy">
           <p class="eyebrow">Personal banking</p>
-          <h1>Everything that matters, at a glance.</h1>
-          <p>See your balance, move money and talk to support from one calm, secure place.</p>
+          <h1>Your money, always within reach.</h1>
+          <p>View your products, pay bills, and manage your card in one place.</p>
         </div>
-        <small></small>
+        <small>Secure connection · Your data is protected</small>
       </section>
       <section class="login-panel">
         <form id="login-form">
-          <a href="/en" class="mobile-brand brand"><span class="brand-mark">Z</span><strong>Ziraat</strong></a>
+          <a href="/en" class="mobile-brand brand"
+            ><span class="brand-mark-shell"><img src="/internet-banking/ziraat-mark.png" alt="" /></span
+            ><strong>Ziraat Bank</strong></a
+          >
           <p class="eyebrow">Secure access</p>
           <h2>Welcome back</h2>
-          <p class="form-intro">Sign in to continue to your account.</p>
-          <label>Username<input name="username" required /></label>
-          <label>Password<input name="password" type="password" required /></label>
+          <p class="form-intro">Sign in to view your banking.</p>
+          <label>Username<input name="username" autocomplete="username" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
           <button class="login-submit">Sign in <span aria-hidden="true">Continue</span></button>
           <p class="error" role="alert"></p>
         </form>
@@ -41,50 +47,64 @@
     <main id="app" class="app" hidden>
       <aside class="side-nav">
         <div class="sidebar-top">
-          <a href="/en" class="brand"><span class="brand-mark">Z</span><strong>Ziraat</strong></a>
+          <a href="/en" class="brand brand-on-dark"
+            ><span class="brand-mark-shell"><img src="/internet-banking/ziraat-mark.png" alt="" /></span
+            ><strong>Ziraat Bank</strong></a
+          >
           <span class="secure-badge">SECURE</span>
         </div>
         <div class="sidebar-account">
-          <div class="avatar sidebar-avatar" id="sidebar-avatar">PC</div>
-          <div><small>Personal account</small><strong id="sidebar-name">Customer</strong></div>
+          <div class="avatar sidebar-avatar" id="sidebar-avatar">CL</div>
+          <div><small>Personal banking</small><strong id="sidebar-name">Customer</strong></div>
         </div>
         <nav aria-label="Main navigation">
-          <small class="nav-label">BANKING</small>
+          <small class="nav-label">MY BANKING</small>
           <button class="nav-item active" type="button" data-view="home" aria-current="page">
-            <span class="nav-icon" aria-hidden="true">OV</span><span>Overview</span>
+            <span class="nav-icon">⌂</span><span>Home</span>
           </button>
           <button class="nav-item" type="button" data-view="transfer">
-            <span class="nav-icon" aria-hidden="true">TR</span><span>Transfers</span>
+            <span class="nav-icon">⇄</span><span>Transfer</span>
           </button>
           <button class="nav-item" type="button" data-view="payments">
-            <span class="nav-icon" aria-hidden="true">PY</span><span>Payments</span>
+            <span class="nav-icon">▣</span><span>Pay bills</span>
           </button>
           <button class="nav-item" type="button" data-view="card">
-            <span class="nav-icon" aria-hidden="true">CD</span><span>Cards</span>
+            <span class="nav-icon">▭</span><span>My card</span>
           </button>
           <button class="nav-item" type="button" data-view="activity">
-            <span class="nav-icon" aria-hidden="true">AC</span><span>Activity</span>
+            <span class="nav-icon">↻</span><span>Activity</span>
           </button>
           <small class="nav-label service-label">HELP</small>
           <button class="nav-item" type="button" data-view="support">
-            <span class="nav-icon" aria-hidden="true">SP</span><span>Support</span><i></i>
+            <span class="nav-icon">?</span><span>Support</span><i></i>
           </button>
         </nav>
         <div class="sidebar-foot">
           <span><i></i> Protected session</span>
-          <button id="logout" class="logout" type="button"><span>Sign out</span><small>OUT</small></button>
+          <button id="logout" class="logout" type="button"><span>Sign out</span><small>EXIT</small></button>
         </div>
       </aside>
 
       <section class="content">
         <header class="topbar">
-          <div class="view-heading">
-            <p id="view-kicker">Your financial home</p>
-            <h1 id="view-title">Overview</h1>
+          <div class="mobile-bank-head">
+            <a href="/en" class="brand brand-on-dark"
+              ><span class="brand-mark-shell"><img src="/internet-banking/ziraat-mark.png" alt="" /></span
+              ><strong>Ziraat Bank</strong></a
+            >
+            <div class="mobile-head-actions">
+              <button type="button" data-view="support" aria-label="Open support">⌕</button>
+              <button type="button" data-view="activity" aria-label="View notifications">●</button>
+            </div>
           </div>
+          <div class="view-heading">
+            <p id="view-kicker">Banking made familiar</p>
+            <h1 id="view-title">Home</h1>
+          </div>
+          <div class="mobile-hello" id="mobile-hello">Hello, Customer</div>
           <div class="topbar-actions">
-            <button class="support-shortcut" type="button" data-view="support">Contact support</button>
-            <div class="avatar" id="avatar">PC</div>
+            <button class="support-shortcut" type="button" data-view="support">Help center</button>
+            <div class="avatar" id="avatar">CL</div>
           </div>
         </header>
         <div id="dashboard"></div>
@@ -99,8 +119,7 @@
         aria-controls="message-panel"
         aria-expanded="false"
       >
-        <span aria-hidden="true">CHAT</span>
-        <i></i>
+        <span>CHAT</span><i></i>
       </button>
       <section class="floating-chat" id="message-panel" aria-label="Support chat" hidden>
         <div class="panel-head">
@@ -108,7 +127,7 @@
             <h2>Support</h2>
             <small>Direct messages</small>
           </div>
-          <button class="chat-close" id="chat-close" type="button" aria-label="Close support chat">Close</button>
+          <button class="chat-close" id="chat-close" type="button" aria-label="Close chat">Close</button>
         </div>
         <div class="messages" id="support-messages" role="log" aria-live="polite"></div>
         <form class="message-form" id="message-form">
@@ -117,7 +136,7 @@
             maxlength="2000"
             rows="2"
             placeholder="Write your message"
-            aria-label="Support message"
+            aria-label="Message support"
             required
           ></textarea>
           <button aria-label="Send message">Send</button>
@@ -125,25 +144,21 @@
       </section>
 
       <nav class="mobile-nav" aria-label="Mobile navigation">
-        <button class="active" type="button" data-view="home">
-          <span aria-hidden="true">OV</span><small>Overview</small>
-        </button>
-        <button type="button" data-view="transfer"><span aria-hidden="true">TR</span><small>Transfer</small></button>
-        <button class="scan" type="button" data-view="payments" aria-label="Pay a bill">
-          <span aria-hidden="true">PY</span>
-        </button>
-        <button type="button" data-view="card"><span aria-hidden="true">CD</span><small>Card</small></button>
-        <button type="button" data-view="support"><span aria-hidden="true">SP</span><small>Support</small></button>
+        <button class="active" type="button" data-view="home"><span>⌂</span><small>Home</small></button>
+        <button type="button" data-view="transfer"><span>⇄</span><small>Operations</small></button>
+        <button type="button" data-view="card"><span>▭</span><small>For you</small></button>
+        <button type="button" data-view="support"><span>⚙</span><small>Settings</small></button>
       </nav>
     </main>
-    <dialog id="deposit-dialog" class="deposit-dialog">
-      <div class="locked-icon" aria-hidden="true">LOCKED</div>
-      <p class="eyebrow">Deposit unavailable</p>
-      <h2>Contact support to add money</h2>
-      <p>For your account security, deposits must be enabled by our support team.</p>
+
+    <dialog id="blocked-operation-dialog" class="deposit-dialog">
+      <div class="locked-icon" aria-hidden="true">!</div>
+      <p class="eyebrow" id="blocked-operation-eyebrow">Blocked transaction</p>
+      <h2 id="blocked-operation-title">This operation is currently blocked</h2>
+      <p id="blocked-operation-copy">Contact our support team for assistance with your account.</p>
       <div class="dialog-actions">
-        <button id="close-deposit-dialog" type="button">Not now</button>
-        <button id="contact-deposit-support" class="primary" type="button">Chat with support</button>
+        <button id="close-blocked-operation" type="button">Not now</button
+        ><button id="contact-blocked-operation-support" class="primary" type="button">Contact support</button>
       </div>
     </dialog>
   </body>

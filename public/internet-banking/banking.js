@@ -1,9 +1,31 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-const state = { data: null, view: 'home', balanceVisible: true, cardVisible: false };
+const state = { data: null, view: 'home', balanceVisible: false, cardVisible: false };
 let activeCurrency = 'USD';
+let activeBlockedOperation = 'deposit';
 
-const money = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: activeCurrency }).format(value);
+const blockedOperations = {
+  deposit: {
+    title: 'Deposits are currently blocked',
+    copy: 'Contact our support team to request deposit access for your account.',
+    message: 'Hello, I need help enabling deposits on my account.'
+  },
+  withdrawal: {
+    title: 'Transfers are currently blocked',
+    copy: 'Contact our support team to request transfer access for your account.',
+    message: 'Hello, I need help enabling transfers on my account.'
+  },
+  payment: {
+    title: 'Bill payments are currently blocked',
+    copy: 'Contact our support team to request bill payment access for your account.',
+    message: 'Hello, I need help enabling bill payments on my account.'
+  }
+};
+
+const money = (value) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: activeCurrency, minimumFractionDigits: 2 }).format(
+    value
+  );
 const date = (value) =>
   new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
@@ -18,6 +40,23 @@ const escape = (value) =>
     (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]
   );
 
+const icons = {
+  eye: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16-.8 4 4-.8L18 8.4 15.6 6 4 16Z"/><path d="m14.5 7.1 2.4 2.4"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>',
+  send: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 3-7.4 18-3.1-7.5L3 10.4 21 3Z"/><path d="m10.5 13.5 5-5"/></svg>',
+  qr: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM15 14h2v2h-2zM19 14h1v3h-3M14 19h3v1h-3zM20 20h.01"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12Z"/><path d="M9.5 16.5c.5 1 1.3 1.5 2.5 1.5"/></svg>',
+  transfer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>',
+  deposit:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10M8 7l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+  card: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>',
+  help: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M9.8 9a2.4 2.4 0 1 1 3.5 2.1c-.8.4-1.3.9-1.3 1.9M12 17h.01"/></svg>',
+  shield:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.1 7 10 4.2-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>'
+};
+
 async function api(url, options) {
   const response = await fetch(url, options);
   let data = {};
@@ -28,18 +67,18 @@ async function api(url, options) {
     showLogin();
     throw new Error('Your session has expired.');
   }
-  if (!response.ok) throw new Error(data.error || 'The request could not be completed.');
+  if (!response.ok) throw new Error(data.error || 'We could not complete your request.');
   return data;
 }
 
 function initials(name) {
   return (
-    name
+    String(name || '')
       .split(/\s+/)
       .slice(0, 2)
       .map((part) => part[0])
       .join('')
-      .toUpperCase() || 'PC'
+      .toUpperCase() || 'CL'
   );
 }
 function maskAccount(value) {
@@ -52,30 +91,48 @@ function maskCard(value) {
     .replace(/\s/g, '')
     .slice(-4)}`;
 }
+function transactionLabel(type) {
+  return type === 'payment'
+    ? 'Payment'
+    : type === 'withdrawal'
+      ? 'Transfer'
+      : type === 'opening'
+        ? 'Opening balance'
+        : 'Credit';
+}
 function txRow(transaction) {
   const debit = ['withdrawal', 'debit', 'payment'].includes(transaction.type);
-  const label = transaction.type === 'payment' ? 'Payment' : transaction.type === 'withdrawal' ? 'Transfer' : 'Credit';
   return `<article class="tx ${escape(transaction.type)}">
-    <span class="tx-icon" aria-hidden="true">${debit ? '-' : '+'}</span>
-    <div><p>${escape(transaction.description)}</p><small>${label} · ${date(transaction.createdAt)}</small></div>
-    <strong>${debit ? '-' : '+'}${money(transaction.amount)}</strong>
+    <span class="tx-icon" aria-hidden="true">${debit ? '−' : '+'}</span>
+    <div><p>${escape(transaction.description)}</p><small>${transactionLabel(transaction.type)} · ${date(transaction.createdAt)}</small></div>
+    <strong>${debit ? '−' : '+'}${money(transaction.amount)}</strong>
   </article>`;
 }
 function messageRow(message) {
   return `<p class="message ${escape(message.sender)}">${escape(message.body)}<time>${date(message.createdAt)}</time></p>`;
 }
-function accountCard(customer) {
-  return `<article class="balance-card bento-card">
-    <div class="balance-card-head"><span>${escape(customer.currency)} current account</span><strong>VISA</strong></div>
-    <div class="balance-main"><small>Available balance</small><div><strong id="balance-value" data-value="${escape(money(customer.balance))}">${escape(money(customer.balance))}</strong><button id="toggle-balance" type="button">Hide</button></div></div>
-    <footer><span><small>ACCOUNT / IBAN</small><strong>${escape(maskAccount(customer.accountNumber))}</strong></span><span><small>STATUS</small><strong>Available</strong></span></footer>
-  </article>`;
+function productRows(customer) {
+  const status = customer.cardStatus === 'frozen' ? 'Frozen' : 'Active';
+  return `<div class="product-list">
+    <button class="product-row" type="button" data-go="activity">
+      <span class="product-symbol account-symbol"><img src="/internet-banking/ziraat-mark.png" alt="" /></span>
+      <span class="product-copy"><strong>${escape(customer.currency)} ACCOUNT</strong><small>${escape(maskAccount(customer.accountNumber))}</small></span>
+      <span class="product-value"><strong id="balance-value" data-value="${escape(money(customer.balance))}">••••••</strong><small>Available balance</small></span>
+      <span class="row-arrow">${icons.arrow}</span>
+    </button>
+    <button class="product-row" type="button" data-go="card">
+      <span class="product-symbol card-symbol">V</span>
+      <span class="product-copy"><strong>Debit card</strong><small>${escape(maskCard(customer.cardNumber))}</small></span>
+      <span class="product-value"><strong>${status}</strong><small>Card status</small></span>
+      <span class="row-arrow">${icons.arrow}</span>
+    </button>
+  </div>`;
 }
 function cardVisual(customer, compact = false) {
-  const numberAttributes = compact ? '' : 'id="card-number" data-value="' + escape(customer.cardNumber) + '"';
-  const cvvAttributes = compact ? '' : 'id="card-cvv" data-value="' + escape(customer.cardCvv) + '"';
+  const numberAttributes = compact ? '' : `id="card-number" data-value="${escape(customer.cardNumber)}"`;
+  const cvvAttributes = compact ? '' : `id="card-cvv" data-value="${escape(customer.cardCvv)}"`;
   return `<div class="debit-card ${compact ? 'compact-card' : ''} ${customer.cardStatus === 'frozen' ? 'is-frozen' : ''}">
-    <div class="debit-card-top"><span>Ziraat</span><strong>VISA</strong></div>
+    <div class="debit-card-top"><span class="card-brand"><img src="/internet-banking/ziraat-mark.png" alt="" /><b>Ziraat Bank</b></span><strong>VISA</strong></div>
     ${compact ? '' : '<button id="reveal-card" type="button">Show details</button>'}
     <div class="card-number" ${numberAttributes}>${escape(maskCard(customer.cardNumber))}</div>
     <div class="card-secrets"><span><small>VALID THRU</small><strong>${escape(customer.cardExpiry)}</strong></span><span><small>CVV</small><strong ${cvvAttributes}>•••</strong></span></div>
@@ -83,74 +140,103 @@ function cardVisual(customer, compact = false) {
 }
 function operationForm(type) {
   const payment = type === 'payment';
-  return `<form class="operation-form" data-transaction-form="${type}">
-    <div class="form-intro-row"><div><span class="form-index">${payment ? 'PY' : 'TR'}</span><h2>${payment ? 'Pay a service' : 'Make a transfer'}</h2></div><small>Available ${money(state.data.customer.balance)}</small></div>
-    <label>${payment ? 'Service or company' : 'Recipient'}<input name="recipient" maxlength="80" placeholder="${payment ? 'Electricity, phone, internet' : 'Name or account number'}" required /></label>
-    <label>Amount<input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00 ${escape(activeCurrency)}" required /></label>
-    <label>Reference<textarea name="description" maxlength="180" rows="3" placeholder="Add a note (optional)"></textarea></label>
-    <button class="primary operation-submit" type="submit">${payment ? 'Confirm payment' : 'Review transfer'}<span>Continue</span></button>
-    <p class="form-assurance">Encrypted operation. Your balance updates immediately in this demo.</p>
-  </form>`;
+  return `<section class="operation-form blocked-operation-card" aria-labelledby="${type}-blocked-title">
+    <div class="form-intro-row"><div><span class="form-index">${payment ? 'PAY' : 'SEND'}</span><h2>${payment ? 'Pay a bill' : 'Make a transfer'}</h2></div><small>Available ${money(state.data.customer.balance)}</small></div>
+    <div class="blocked-operation-main">
+      <span class="blocked-operation-icon" aria-hidden="true">${icons.lock}</span>
+      <p>TRANSACTION BLOCKED</p>
+      <h3 id="${type}-blocked-title">${payment ? 'Bill payments are unavailable' : 'Transfers are unavailable'}</h3>
+      <span>You cannot enter or submit transaction details while this service is blocked. Contact support to request access.</span>
+    </div>
+    <button class="primary operation-submit" type="button" data-contact-blocked-operation="${type}">Contact support<span>Open chat</span></button>
+    <p class="form-assurance">Your balance and account remain protected.</p>
+  </section>`;
 }
 
 function renderDashboard(data) {
   const customer = data.customer;
-  const recent = data.transactions.slice(0, 4);
+  const recent = data.transactions.slice(0, 3);
   const payments = [
-    ['Electricity', 'Utility service'],
+    ['Electricity', 'Power service'],
     ['Phone', 'Mobile or landline'],
     ['Internet', 'Home connectivity']
   ];
   $('#dashboard').innerHTML = `<div class="views-shell">
     <section class="bank-view home-view" data-page="home">
-      <div class="welcome-line"><div><p id="greeting">Good morning,</p><h2>${escape(customer.name)}</h2></div><button type="button" data-deposit>Deposit funds<span>Requires support</span></button></div>
-      <div class="home-bento">
-        ${accountCard(customer)}
-        <article class="action-deck bento-card"><header><span>Quick access</span><small>Choose an operation</small></header><button type="button" data-go="transfer"><span>Transfer money</span><small>To another account</small></button><button type="button" data-go="payments"><span>Pay a bill</span><small>Utilities and services</small></button><button class="locked-row" type="button" data-deposit><span>Deposit</span><small>Contact support</small></button></article>
-        <article class="activity-card bento-card"><header><div><span>Recent activity</span><small>${data.transactions.length} total movements</small></div><button type="button" data-go="activity">View all</button></header><div class="tx-list">${recent.map(txRow).join('') || '<p class="empty-copy">Your activity will appear here.</p>'}</div></article>
-        <article class="card-preview bento-card"><header><span>Your card</span><i class="card-dot ${escape(customer.cardStatus)}"></i></header>${cardVisual(customer, true)}<button type="button" data-go="card">Manage card<span>Open controls</span></button></article>
+      <div class="home-layout">
+        <section class="products-panel">
+          <header class="section-head"><div><p>Overview</p><h2>Your products</h2></div><div class="section-tools"><button id="toggle-balance" type="button" aria-label="Show balances">${icons.eye}</button><button type="button" data-go="card" aria-label="Manage products">${icons.edit}</button></div></header>
+          ${productRows(customer)}
+          <button class="see-all" type="button" data-go="activity">View all</button>
+        </section>
+
+        <section class="quick-section" aria-labelledby="quick-title">
+          <div class="section-title-row"><h2 id="quick-title">What would you like to do?</h2><small>Quick access</small></div>
+          <div class="quick-actions">
+            <button class="locked-action" type="button" data-go="transfer"><span>${icons.send}<i class="lock-badge">${icons.lock}</i></span><strong>Send to<br />a contact<small>Blocked</small></strong></button>
+            <button class="locked-action" type="button" data-go="payments"><span>${icons.qr}<i class="lock-badge">${icons.lock}</i></span><strong>Pay with<br />QR<small>Blocked</small></strong></button>
+            <button class="locked-action" type="button" data-go="payments"><span>${icons.drop}<i class="lock-badge">${icons.lock}</i></span><strong>Pay<br />bills<small>Blocked</small></strong></button>
+            <button class="locked-action" type="button" data-go="transfer"><span>${icons.transfer}<i class="lock-badge">${icons.lock}</i></span><strong>Transfer<br />money<small>Blocked</small></strong></button>
+            <button class="locked-action" type="button" data-deposit><span>${icons.deposit}<i class="lock-badge">${icons.lock}</i></span><strong>Deposit<br /><small>Blocked</small></strong></button>
+          </div>
+        </section>
+
+        <section class="featured-section">
+          <div class="section-title-row"><h2>Featured for you</h2><button type="button" data-go="card">View all</button></div>
+          <div class="featured-scroll">
+            <button class="feature-card feature-card-blue" type="button" data-go="card"><span class="feature-visual">${icons.card}</span><span><small>Your card</small><strong>Manage your purchases</strong><em>Activate or freeze it whenever you need</em></span><b>New</b></button>
+            <button class="feature-card feature-card-orange" type="button" data-open-chat><span class="feature-visual">${icons.help}</span><span><small>Direct support</small><strong>We are here to help</strong><em>Chat with our support team</em></span></button>
+            <button class="feature-card feature-card-green" type="button" data-go="activity"><span class="feature-visual">${icons.shield}</span><span><small>Security</small><strong>Everything under control</strong><em>Review your latest activity</em></span></button>
+          </div>
+          <div class="carousel-dots" aria-hidden="true"><i class="active"></i><i></i><i></i><i></i></div>
+        </section>
+
+        <section class="recent-panel">
+          <header class="section-head"><div><p>Activity</p><h2>Latest transactions</h2></div><button class="text-link" type="button" data-go="activity">View all</button></header>
+          <div class="tx-list">${recent.map(txRow).join('') || '<p class="empty-copy">Your transactions will appear here.</p>'}</div>
+        </section>
       </div>
     </section>
 
     <section class="bank-view operation-view" data-page="transfer" hidden>
-      <div class="editorial-head"><p>Send money securely</p><h2>Transfer without the clutter.</h2><span>Enter the recipient and amount. You will see the movement in your activity immediately.</span></div>
-      <div class="operation-layout">${operationForm('withdrawal')}<aside class="context-panel"><span>FROM ACCOUNT</span><strong>${escape(customer.accountNumber)}</strong><div><small>Available balance</small><b>${money(customer.balance)}</b></div><p>Transfers are debited from your primary ${escape(customer.currency)} account.</p></aside></div>
+      <div class="editorial-head"><p>Move your money</p><h2>Transfer service is currently unavailable.</h2><span>Transaction details cannot be entered while transfers are blocked.</span></div>
+      <div class="operation-layout">${operationForm('withdrawal')}<aside class="context-panel"><span>TRANSFER STATUS</span><strong>Currently blocked</strong><div><small>Available balance</small><b>${money(customer.balance)}</b></div><p>Transfers require support activation before money can leave your account.</p><button type="button" data-contact-blocked-operation="withdrawal">Contact support</button></aside></div>
     </section>
 
     <section class="bank-view operation-view" data-page="payments" hidden>
-      <div class="editorial-head"><p>Everyday payments</p><h2>Pay essentials in a few steps.</h2><span>Select a frequent service or enter another company in the payment form.</span></div>
-      <div class="payee-strip">${payments.map(([name, detail], index) => `<button type="button" data-payee="${name}"><span>0${index + 1}</span><strong>${name}</strong><small>${detail}</small></button>`).join('')}</div>
-      <div class="operation-layout">${operationForm('payment')}<aside class="context-panel payment-context"><span>CARD STATUS</span><strong>${customer.cardStatus === 'frozen' ? 'Card frozen' : 'Ready to pay'}</strong><div><small>Card ending in</small><b>${escape(String(customer.cardNumber).replace(/\s/g, '').slice(-4))}</b></div><p>${customer.cardStatus === 'frozen' ? 'Unfreeze your card before attempting a payment.' : 'Payments use your active debit card and available account balance.'}</p><button type="button" data-go="card">Manage card</button></aside></div>
+      <div class="editorial-head"><p>Everyday payments</p><h2>Bill payment service is currently unavailable.</h2><span>Payment details cannot be entered while bill payments are blocked.</span></div>
+      <div class="payee-strip is-blocked">${payments.map(([name, detail], index) => `<button type="button" disabled><span>0${index + 1}</span><strong>${name}</strong><small>${detail}</small></button>`).join('')}</div>
+      <div class="operation-layout">${operationForm('payment')}<aside class="context-panel payment-context"><span>PAYMENT STATUS</span><strong>Currently blocked</strong><div><small>Card ending in</small><b>${escape(String(customer.cardNumber).replace(/\s/g, '').slice(-4))}</b></div><p>Bill payments require support activation before they can be processed.</p><button type="button" data-contact-blocked-operation="payment">Contact support</button></aside></div>
     </section>
 
     <section class="bank-view card-view" data-page="card" hidden>
-      <div class="editorial-head"><p>Card controls</p><h2>Your card, under your control.</h2><span>Reveal the details only when you need them, or freeze the card instantly.</span></div>
-      <div class="card-layout"><div>${cardVisual(customer)}</div><aside class="card-control-panel"><span class="card-status ${escape(customer.cardStatus)}">${customer.cardStatus === 'frozen' ? 'Frozen' : 'Active'}</span><h3>${customer.cardStatus === 'frozen' ? 'Your card is paused.' : 'Your card is ready.'}</h3><p>${customer.cardStatus === 'frozen' ? 'New card payments are blocked. Transfers remain available.' : 'Freeze it immediately if the card is lost or you notice unfamiliar activity.'}</p><dl><div><dt>Account</dt><dd>${escape(maskAccount(customer.accountNumber))}</dd></div><div><dt>Currency</dt><dd>${escape(customer.currency)}</dd></div><div><dt>Card type</dt><dd>Debit</dd></div></dl><button id="toggle-card-status" type="button">${customer.cardStatus === 'frozen' ? 'Unfreeze card' : 'Freeze card'}</button></aside></div>
+      <div class="editorial-head"><p>Card controls</p><h2>Your card, under your control.</h2><span>Show the details only when you need them, or freeze your card instantly.</span></div>
+      <div class="card-layout"><div>${cardVisual(customer)}</div><aside class="card-control-panel"><span class="card-status ${escape(customer.cardStatus)}">${customer.cardStatus === 'frozen' ? 'Frozen' : 'Active'}</span><h3>${customer.cardStatus === 'frozen' ? 'Your card is paused.' : 'Your card is ready.'}</h3><p>${customer.cardStatus === 'frozen' ? 'New purchases are blocked. Transfers remain available.' : 'Freeze it immediately if you lose it or notice a purchase you do not recognize.'}</p><dl><div><dt>Account</dt><dd>${escape(maskAccount(customer.accountNumber))}</dd></div><div><dt>Currency</dt><dd>${escape(customer.currency)}</dd></div><div><dt>Type</dt><dd>Debit</dd></div></dl><button id="toggle-card-status" type="button">${customer.cardStatus === 'frozen' ? 'Activate card' : 'Freeze card'}</button></aside></div>
     </section>
 
     <section class="bank-view activity-view" data-page="activity" hidden>
-      <div class="editorial-head"><p>Account history</p><h2>Every movement, clearly listed.</h2><span>Your transfers, service payments and operator adjustments appear together.</span></div>
-      <article class="activity-ledger"><header><div><strong>Transactions</strong><small>Most recent first</small></div><span>${data.transactions.length} movements</span></header><div class="tx-list">${data.transactions.map(txRow).join('') || '<p class="empty-copy">No transactions yet.</p>'}</div></article>
+      <div class="editorial-head"><p>Account history</p><h2>Every transaction, clearly explained.</h2><span>Your transfers, payments, and operator adjustments appear here.</span></div>
+      <article class="activity-ledger"><header><div><strong>Transactions</strong><small>Most recent first</small></div><span>${data.transactions.length} records</span></header><div class="tx-list">${data.transactions.map(txRow).join('') || '<p class="empty-copy">You do not have any transactions yet.</p>'}</div></article>
     </section>
 
     <section class="bank-view support-view" data-page="support" hidden>
-      <div class="support-hero"><div><p>Direct customer care</p><h2>Tell us what you need.</h2><span>Your messages go directly to the operations team assigned to your account.</span><button type="button" data-open-chat>Start a conversation</button></div><aside><span>SUPPORT STATUS</span><strong>Available</strong><small>Messages stay connected to your customer profile.</small></aside></div>
-      <div class="support-grid"><article><span>Deposits</span><h3>Need to add money?</h3><p>Deposits are protected and require manual support activation.</p><button type="button" data-deposit>Request help</button></article><article><span>Card security</span><h3>Lost or unfamiliar card use?</h3><p>Freeze the card now and contact the operations team.</p><button type="button" data-go="card">Open card controls</button></article></div>
+      <div class="support-hero"><div><p>Customer support</p><h2>Tell us what you need.</h2><span>Your messages go directly to the team assigned to your account.</span><button type="button" data-open-chat>Start a conversation</button></div><aside><span>SUPPORT STATUS</span><strong>Available</strong><small>Your messages remain linked to your customer profile.</small></aside></div>
+      <div class="support-grid"><article><span>Deposits</span><h3>Need to add money?</h3><p>Deposits require manual activation for your security.</p><button type="button" data-deposit>Request help</button></article><article><span>Security</span><h3>Lost your card?</h3><p>Freeze it now and contact our team.</p><button type="button" data-go="card">Open controls</button></article></div>
     </section>
   </div>`;
 }
 
 const viewMeta = {
-  home: ['Your financial home', 'Overview'],
-  transfer: ['Move money', 'Transfers'],
-  payments: ['Manage essentials', 'Payments'],
-  card: ['Security and access', 'Cards'],
-  activity: ['Your account history', 'Activity'],
+  home: ['Banking made familiar', 'Home'],
+  transfer: ['Move your money', 'Transfers'],
+  payments: ['Manage your essentials', 'Payments'],
+  card: ['Security and control', 'My card'],
+  activity: ['Account history', 'Activity'],
   support: ['Direct assistance', 'Support']
 };
 
 function setView(view, animate = true) {
-  if (!viewMeta[view]) return;
+  if (!viewMeta[view] || !state.data) return;
   state.view = view;
   $$('.bank-view').forEach((page) => (page.hidden = page.dataset.page !== view));
   $$('[data-view]').forEach((button) => {
@@ -161,14 +247,16 @@ function setView(view, animate = true) {
   });
   $('#view-kicker').textContent = viewMeta[view][0];
   $('#view-title').textContent = viewMeta[view][1];
+  $('#mobile-hello').textContent =
+    view === 'home' ? `Hello, ${state.data.customer.name.split(/\s+/)[0]}` : viewMeta[view][1];
   window.scrollTo({ top: 0, behavior: animate ? 'smooth' : 'auto' });
   const page = $(`[data-page="${view}"]`);
   if (animate && window.gsap) {
     window.gsap.killTweensOf(page.children);
     window.gsap.fromTo(
       page.children,
-      { y: 24, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.62, stagger: 0.08, ease: 'power3.out' }
+      { y: 18, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: 'power3.out' }
     );
   }
 }
@@ -183,46 +271,38 @@ function setChat(open) {
     if (window.gsap)
       window.gsap.fromTo(
         panel,
-        { y: 20, opacity: 0, scale: 0.97 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: 'power3.out' }
+        { y: 16, opacity: 0, scale: 0.98 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.3, ease: 'power3.out' }
       );
   }
 }
-
-function openDepositDialog() {
-  const dialog = $('#deposit-dialog');
+function openBlockedDialog(type = 'deposit') {
+  activeBlockedOperation = blockedOperations[type] ? type : 'deposit';
+  const content = blockedOperations[activeBlockedOperation];
+  const dialog = $('#blocked-operation-dialog');
+  $('#blocked-operation-title').textContent = content.title;
+  $('#blocked-operation-copy').textContent = content.copy;
   if (!dialog.open) dialog.showModal();
-  if (window.gsap)
-    window.gsap.fromTo(dialog, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' });
 }
-
-async function submitTransaction(event) {
-  event.preventDefault();
-  const formElement = event.currentTarget;
-  const form = new FormData(formElement);
-  try {
-    await api('/api/banking/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: formElement.dataset.transactionForm,
-        amount: Number(form.get('amount')),
-        description: `${form.get('recipient')}${form.get('description') ? ` · ${form.get('description')}` : ''}`
-      })
-    });
-    formElement.reset();
-    await load();
-    setView('activity');
-  } catch (error) {
-    fail(error.message);
-  }
+function contactBlockedOperation(type) {
+  activeBlockedOperation = blockedOperations[type] ? type : 'deposit';
+  setView('support');
+  setChat(true);
+  const field = $('#message-form textarea');
+  field.value = blockedOperations[activeBlockedOperation].message;
+  field.focus();
 }
 
 function wireDashboard() {
   $$('[data-go]').forEach((button) => (button.onclick = () => setView(button.dataset.go)));
-  $$('[data-deposit]').forEach((button) => (button.onclick = openDepositDialog));
+  $$('[data-deposit]').forEach((button) => (button.onclick = () => openBlockedDialog('deposit')));
+  $$('[data-blocked-operation]').forEach(
+    (button) => (button.onclick = () => openBlockedDialog(button.dataset.blockedOperation))
+  );
+  $$('[data-contact-blocked-operation]').forEach(
+    (button) => (button.onclick = () => contactBlockedOperation(button.dataset.contactBlockedOperation))
+  );
   $$('[data-open-chat]').forEach((button) => (button.onclick = () => setChat(true)));
-  $$('[data-transaction-form]').forEach((form) => (form.onsubmit = submitTransaction));
   $$('[data-payee]').forEach((button) => {
     button.onclick = () => {
       const input = $('[data-page="payments"] [name="recipient"]');
@@ -237,7 +317,8 @@ function wireDashboard() {
     state.balanceVisible = !state.balanceVisible;
     const value = $('#balance-value');
     value.textContent = state.balanceVisible ? value.dataset.value : '••••••';
-    $('#toggle-balance').textContent = state.balanceVisible ? 'Hide' : 'Show';
+    $('#toggle-balance').classList.toggle('is-visible', state.balanceVisible);
+    $('#toggle-balance').setAttribute('aria-label', state.balanceVisible ? 'Hide balances' : 'Show balances');
   };
   $('#reveal-card').onclick = () => {
     state.cardVisible = !state.cardVisible;
@@ -271,18 +352,15 @@ function render(data) {
   $('#avatar').textContent = customerInitials;
   $('#sidebar-avatar').textContent = customerInitials;
   $('#sidebar-name').textContent = data.customer.name;
-  const hour = new Date().getHours();
   renderDashboard(data);
-  $('#greeting').textContent = hour < 12 ? 'Good morning,' : hour < 19 ? 'Good afternoon,' : 'Good evening,';
   $('#support-messages').innerHTML =
     data.messages.map(messageRow).join('') || '<p class="message">Hello. How can we help?</p>';
   wireDashboard();
   setView(state.view, false);
   fail();
   if (window.gsap)
-    window.gsap.from('.home-bento > *', { y: 28, opacity: 0, duration: 0.7, stagger: 0.07, ease: 'power3.out' });
+    window.gsap.from('.home-layout > *', { y: 22, opacity: 0, duration: 0.6, stagger: 0.06, ease: 'power3.out' });
 }
-
 function fail(text = '') {
   $('#app-error').textContent = text;
 }
@@ -322,14 +400,10 @@ $('#logout').onclick = logout;
 $$('[data-view]').forEach((button) => (button.onclick = () => setView(button.dataset.view)));
 $('#chat-launcher').onclick = () => setChat($('#message-panel').hidden);
 $('#chat-close').onclick = () => setChat(false);
-$('#close-deposit-dialog').onclick = () => $('#deposit-dialog').close();
-$('#contact-deposit-support').onclick = () => {
-  $('#deposit-dialog').close();
-  setView('support');
-  setChat(true);
-  const field = $('#message-form textarea');
-  field.value = 'Hello, I need help enabling deposits on my account.';
-  field.focus();
+$('#close-blocked-operation').onclick = () => $('#blocked-operation-dialog').close();
+$('#contact-blocked-operation-support').onclick = () => {
+  $('#blocked-operation-dialog').close();
+  contactBlockedOperation(activeBlockedOperation);
 };
 $('#message-form').onsubmit = async (event) => {
   event.preventDefault();
