@@ -313,6 +313,44 @@ test('customer transactions are blocked while operator adjustments and banking m
   });
   assert.equal(credit.status, 201);
   assert.equal((await credit.json()).customer.balance, 13140.5);
+  const hiddenDateCredit = await fetch(`${base}/api/operator/customers/${id}/transactions`, {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      type: 'credit',
+      amount: 10,
+      description: 'Private date adjustment',
+      dateMode: 'hidden'
+    })
+  });
+  assert.equal(hiddenDateCredit.status, 201);
+  const hiddenDateData = await hiddenDateCredit.json();
+  assert.equal(hiddenDateData.transaction.showDate, false);
+  assert.ok(hiddenDateData.transaction.createdAt);
+
+  const chosenDate = '2024-12-24T19:45:00.000Z';
+  const manualDateCredit = await fetch(`${base}/api/operator/customers/${id}/transactions`, {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      type: 'credit',
+      amount: 20,
+      description: 'Scheduled adjustment',
+      dateMode: 'manual',
+      createdAt: chosenDate
+    })
+  });
+  assert.equal(manualDateCredit.status, 201);
+  const manualDateData = await manualDateCredit.json();
+  assert.equal(manualDateData.transaction.showDate, true);
+  assert.equal(manualDateData.transaction.createdAt, chosenDate);
+
+  const invalidManualDate = await fetch(`${base}/api/operator/customers/${id}/transactions`, {
+    method: 'POST',
+    headers: { cookie: operatorCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'credit', amount: 15, dateMode: 'manual' })
+  });
+  assert.equal(invalidManualDate.status, 400);
   await fetch(base + '/api/banking/messages', {
     method: 'POST',
     headers: { cookie: customerCookie, 'content-type': 'application/json' },

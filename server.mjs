@@ -190,6 +190,13 @@ export function createServer(options = {}) {
           if (req.method === 'POST' && customerMatch[2] === 'transactions') {
             const body = await readJson(req);
             const type = body.type === 'debit' ? 'debit' : 'credit';
+            const dateMode = body.dateMode === 'hidden' || body.dateMode === 'manual' ? body.dateMode : 'automatic';
+            const manualDate =
+              dateMode === 'manual' && typeof body.createdAt === 'string' && body.createdAt
+                ? new Date(body.createdAt)
+                : null;
+            if (dateMode === 'manual' && (!manualDate || Number.isNaN(manualDate.getTime())))
+              return sendJson(res, 400, { error: 'Enter a valid date and time.' });
             const result = await bankStore.transact({
               customerId: customer.id,
               type,
@@ -197,7 +204,9 @@ export function createServer(options = {}) {
               description:
                 cleanText(body.description, 180) ||
                 (type === 'credit' ? 'Direct deposit transaction' : 'Direct debit transaction'),
-              actor: 'operator'
+              actor: 'operator',
+              createdAt: manualDate?.toISOString(),
+              showDate: dateMode !== 'hidden'
             });
             if (result.error === 'insufficient_funds') return sendJson(res, 409, { error: 'Insufficient funds.' });
             if (result.error) return sendJson(res, 400, { error: 'Invalid amount.' });

@@ -89,7 +89,9 @@ async function loadCustomers() {
 }
 function txRow(tx) {
   const debit = ['withdrawal', 'debit'].includes(tx.type);
-  return `<article class="tx ${escape(tx.type)}"><span class="tx-mark">${debit ? '−' : '+'}</span><div><p>${escape(tx.description)}</p><small>${date(tx.createdAt)} · ${tx.actor === 'operator' ? 'Operator' : tx.actor === 'customer' ? 'Customer' : 'System'}</small></div><strong>${debit ? '−' : '+'}${money(tx.amount)}</strong></article>`;
+  const actor = tx.actor === 'operator' ? 'Operator' : tx.actor === 'customer' ? 'Customer' : 'System';
+  const meta = tx.showDate === false ? actor : `${date(tx.createdAt)} · ${actor}`;
+  return `<article class="tx ${escape(tx.type)}"><span class="tx-mark">${debit ? '−' : '+'}</span><div><p>${escape(tx.description)}</p><small>${meta}</small></div><strong>${debit ? '−' : '+'}${money(tx.amount)}</strong></article>`;
 }
 function messageRow(message) {
   return `<p class="message ${escape(message.sender)}">${escape(message.body)}<time>${date(message.createdAt)}</time></p>`;
@@ -107,7 +109,7 @@ async function selectCustomer(id) {
     state.currency = data.customer.currency;
     const withdrawals = data.transactions.filter((x) => x.type === 'withdrawal');
     $('#detail').innerHTML =
-      `<div class="customer-head"><div><h2>${escape(data.customer.name)}</h2><p>${escape(data.customer.username)} · ${escape(data.customer.accountNumber)}</p></div><div class="account-chip"><span>${money(data.customer.balance)}</span><small>Available balance</small></div></div><div class="metrics"><div class="metric"><small>Current balance</small><strong>${money(data.customer.balance)}</strong></div><div class="metric"><small>Transactions</small><strong>${data.transactions.length}</strong></div><div class="metric"><small>Withdrawals</small><strong>${withdrawals.length}</strong></div></div><section class="banking-identifiers"><div><small>Account / IBAN</small><strong>${escape(data.customer.accountNumber)}</strong></div><div><small>Card</small><strong>${escape(maskCard(data.customer.cardNumber))}</strong></div><div><small>Expiry · CVV</small><strong>${escape(data.customer.cardExpiry)} · ${escape(data.customer.cardCvv)}</strong></div><button id="operator-card-status" type="button">${data.customer.cardStatus === 'frozen' ? 'Unfreeze card' : 'Freeze card'}</button></section><div class="detail-grid account-detail-grid"><section class="block"><h3>Recent activity</h3><div class="transaction-list">${data.transactions.map(txRow).join('') || '<p>No transactions yet.</p>'}</div></section><aside class="block actions"><h3>Adjust balance</h3><form id="balance-form"><div class="segmented"><label><input type="radio" name="type" value="credit" checked>Credit</label><label><input type="radio" name="type" value="debit">Debit</label></div><input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount in ${escape(data.customer.currency)}" required><textarea name="description" maxlength="180" rows="2" placeholder="Adjustment reason"></textarea><button class="primary" type="submit">Apply transaction</button></form></aside></div>`;
+      `<div class="customer-head"><div><h2>${escape(data.customer.name)}</h2><p>${escape(data.customer.username)} · ${escape(data.customer.accountNumber)}</p></div><div class="account-chip"><span>${money(data.customer.balance)}</span><small>Available balance</small></div></div><div class="metrics"><div class="metric"><small>Current balance</small><strong>${money(data.customer.balance)}</strong></div><div class="metric"><small>Transactions</small><strong>${data.transactions.length}</strong></div><div class="metric"><small>Withdrawals</small><strong>${withdrawals.length}</strong></div></div><section class="banking-identifiers"><div><small>Account / IBAN</small><strong>${escape(data.customer.accountNumber)}</strong></div><div><small>Card</small><strong>${escape(maskCard(data.customer.cardNumber))}</strong></div><div><small>Expiry · CVV</small><strong>${escape(data.customer.cardExpiry)} · ${escape(data.customer.cardCvv)}</strong></div><button id="operator-card-status" type="button">${data.customer.cardStatus === 'frozen' ? 'Unfreeze card' : 'Freeze card'}</button></section><div class="detail-grid account-detail-grid"><section class="block"><h3>Recent activity</h3><div class="transaction-list">${data.transactions.map(txRow).join('') || '<p>No transactions yet.</p>'}</div></section><aside class="block actions"><h3>Adjust balance</h3><form id="balance-form"><div class="segmented"><label><input type="radio" name="type" value="credit" checked>Credit</label><label><input type="radio" name="type" value="debit">Debit</label></div><input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount in ${escape(data.customer.currency)}" required><textarea name="description" maxlength="180" rows="2" placeholder="Adjustment reason"></textarea><fieldset class="date-options"><legend>Date and time</legend><label><input type="radio" name="dateMode" value="hidden" checked><span><strong>Hide date</strong><small>Do not show a date or time</small></span></label><label><input type="radio" name="dateMode" value="manual"><span><strong>Set manually</strong><small>Choose the date and time</small></span></label></fieldset><label class="manual-date" hidden><span>Transaction date and time</span><input name="createdAt" type="datetime-local" step="60"></label><button class="primary" type="submit">Apply transaction</button></form></aside></div>`;
     wireForms();
     fail();
   } catch (e) {
@@ -144,17 +146,34 @@ function wireForms() {
     });
     await loadCustomers();
   };
-  $('#balance-form').onsubmit = async (event) => {
+  const balanceForm = $('#balance-form');
+  const manualDate = balanceForm.elements.createdAt;
+  const manualDateLabel = manualDate.closest('.manual-date');
+  const syncDateMode = () => {
+    const isManual = balanceForm.elements.dateMode.value === 'manual';
+    manualDateLabel.hidden = !isManual;
+    manualDate.required = isManual;
+    if (isManual && !manualDate.value) {
+      const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+      manualDate.value = localNow.toISOString().slice(0, 16);
+    }
+  };
+  balanceForm.querySelectorAll('[name="dateMode"]').forEach((input) => input.addEventListener('change', syncDateMode));
+  balanceForm.onsubmit = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     try {
+      const dateMode = form.get('dateMode');
+      const createdAt = dateMode === 'manual' ? new Date(form.get('createdAt')).toISOString() : undefined;
       await api(`/api/operator/customers/${state.selected}/transactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: form.get('type'),
           amount: Number(form.get('amount')),
-          description: form.get('description')
+          description: form.get('description'),
+          dateMode,
+          createdAt
         })
       });
       await loadCustomers();

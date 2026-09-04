@@ -637,6 +637,54 @@ textarea {
 .actions textarea {
   resize: vertical;
 }
+.date-options {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+}
+.date-options legend,
+.manual-date > span {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.date-options label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.date-options label:has(input:checked) {
+  border-color: var(--ink);
+  background: #f8f9f6;
+}
+.date-options input {
+  width: auto;
+  margin-top: 3px;
+  padding: 0;
+  accent-color: var(--ink);
+}
+.date-options span,
+.date-options strong,
+.date-options small,
+.manual-date {
+  display: block;
+}
+.date-options strong {
+  font-size: 14px;
+}
+.date-options small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.manual-date[hidden] {
+  display: none;
+}
 .actions .primary {
   background: var(--red);
 }

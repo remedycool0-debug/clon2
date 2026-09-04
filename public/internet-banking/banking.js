@@ -102,9 +102,13 @@ function transactionLabel(type) {
 }
 function txRow(transaction) {
   const debit = ['withdrawal', 'debit', 'payment'].includes(transaction.type);
+  const meta =
+    transaction.showDate === false
+      ? transactionLabel(transaction.type)
+      : `${transactionLabel(transaction.type)} · ${date(transaction.createdAt)}`;
   return `<article class="tx ${escape(transaction.type)}">
     <span class="tx-icon" aria-hidden="true">${debit ? '−' : '+'}</span>
-    <div><p>${escape(transaction.description)}</p><small>${transactionLabel(transaction.type)} · ${date(transaction.createdAt)}</small></div>
+    <div><p>${escape(transaction.description)}</p><small>${meta}</small></div>
     <strong>${debit ? '−' : '+'}${money(transaction.amount)}</strong>
   </article>`;
 }

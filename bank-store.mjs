@@ -141,7 +141,7 @@ export function createMemoryBankStore({
         .slice(-limit)
         .reverse();
     },
-    async transact({ customerId, type, amount, description, actor }) {
+    async transact({ customerId, type, amount, description, actor, createdAt = nowIso(), showDate = true }) {
       const activeCustomer = customers.get(customerId);
       if (!activeCustomer) return { error: 'not_found' };
       const cents = money(amount);
@@ -156,7 +156,8 @@ export function createMemoryBankStore({
         amount: cents / 100,
         description,
         actor,
-        createdAt: nowIso()
+        createdAt,
+        showDate
       };
       transactions.push(row);
       return { customer: publicCustomer(activeCustomer), transaction: row };
@@ -196,7 +197,8 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
     CREATE TABLE IF NOT EXISTS bank_transactions (
       id BIGSERIAL PRIMARY KEY, customer_id UUID NOT NULL REFERENCES bank_customers(id),
       type VARCHAR(24) NOT NULL, amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
-      description VARCHAR(180) NOT NULL, actor VARCHAR(20) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      description VARCHAR(180) NOT NULL, actor VARCHAR(20) NOT NULL,
+      show_date BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS bank_messages (
       id BIGSERIAL PRIMARY KEY, customer_id UUID NOT NULL REFERENCES bank_customers(id),
@@ -213,6 +215,7 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
   await pool.query(
     "ALTER TABLE bank_customers ADD COLUMN IF NOT EXISTS card_status VARCHAR(12) NOT NULL DEFAULT 'active'"
   );
+  await pool.query('ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS show_date BOOLEAN NOT NULL DEFAULT TRUE');
   const salt = crypto.randomBytes(16).toString('hex');
   const id = crypto.randomUUID();
   const inserted = await pool.query(
@@ -315,12 +318,12 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
     },
     async getTransactions(customerId, limit = 100) {
       const { rows } = await pool.query(
-        'SELECT id,customer_id AS "customerId",type,amount_cents::float/100 AS amount,description,actor,created_at AS "createdAt" FROM bank_transactions WHERE customer_id=$1 ORDER BY id DESC LIMIT $2',
+        'SELECT id,customer_id AS "customerId",type,amount_cents::float/100 AS amount,description,actor,show_date AS "showDate",created_at AS "createdAt" FROM bank_transactions WHERE customer_id=$1 ORDER BY id DESC LIMIT $2',
         [customerId, limit]
       );
       return rows;
     },
-    async transact({ customerId, type, amount, description, actor }) {
+    async transact({ customerId, type, amount, description, actor, createdAt = nowIso(), showDate = true }) {
       const cents = money(amount);
       if (!Number.isSafeInteger(cents) || cents <= 0) return { error: 'invalid_amount' };
       const debit = type === 'withdrawal' || type === 'debit' || type === 'payment';
@@ -341,8 +344,8 @@ export async function createBankStore(databaseUrl = process.env.DATABASE_URL) {
           [customerId, debit ? -cents : cents]
         );
         const tx = await client.query(
-          'INSERT INTO bank_transactions (customer_id,type,amount_cents,description,actor) VALUES ($1,$2,$3,$4,$5) RETURNING id,customer_id AS "customerId",type,amount_cents::float/100 AS amount,description,actor,created_at AS "createdAt"',
-          [customerId, type, cents, description, actor]
+          'INSERT INTO bank_transactions (customer_id,type,amount_cents,description,actor,show_date,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id,customer_id AS "customerId",type,amount_cents::float/100 AS amount,description,actor,show_date AS "showDate",created_at AS "createdAt"',
+          [customerId, type, cents, description, actor, showDate, createdAt]
         );
         await client.query('COMMIT');
         return { customer: publicCustomer(updated.rows[0]), transaction: tx.rows[0] };
